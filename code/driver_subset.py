@@ -5,7 +5,7 @@ import macaProc as mp
 from netcdftime import utime
 import datetime
 
-datapath = "/data/maca_wusa/"
+datapath = "/home/nick/MEGA/workspace/mca/data/"
 varname = "precipitation"
 fns = glob.glob(datapath + "*_pr_*.nc")
 bottomleft = [360 + -116.6, 44]
@@ -14,6 +14,7 @@ topright = [360. + -103.5, 49.5]
 fn = fns[0]
 data = Dataset(fn, 'a')
 v = data.variables
+dst_name = fn[35:-3] + "_MT.nc"
 
 # Clip historical data to 1970-2000
 if fn[-47:-35] == '_historical_':
@@ -22,6 +23,7 @@ if fn[-47:-35] == '_historical_':
     tcon = utime('days since 1900-01-01')
     t_list = tcon.num2date(v['time'][:])
     bool_time = (t_list > start_time) & (t_list < end_time)
+    dst_name = dst_name.replace("1950_2005", "1971_2000")
 else:
     bool_time = np.ones(v['time'][:].shape).astype(bool)
 
@@ -36,4 +38,44 @@ lons = v['lon'][l:r]
 lats = v['lat'][b:t]
 var = v[varname][bool_time, b:t, l:r]
 time = v['time'][bool_time]
+print "done clipping"
+
+# Create netcdf file
+dst = Dataset(datapath + dst_name, 'w')
+
+# Copy global attributes
+for att in data.ncattrs():
+    setattr(dst, att, getattr(data, att))
+
+geo_bounds = "POLYGON((-116.6056 43.9794, -116.6056 49.3127, -103.5225 43.9794, -103.5225 49.3127))"
+setattr(dst, "geospatial_bounds", geo_bounds)
+setattr(dst, "geospatial_lat_min", "43.9794")
+setattr(dst, "geospatial_lat_max", "49.3127")
+setattr(dst, "geospatial_lon_min", "-116.6056")
+setattr(dst, "geospatial_lon_max", "-103.5225")
+
+if fn[-47:-35] == '_historical_':
+    setattr(dst, "time_coverage_start", "1971-01-01T00:0")
+    setattr(dst, "time_coverage_end", "2000-12-31T00:0")
+
+# Create dimensions
+dst.createDimension('time', size=None)
+dst.createDimension('lon', size=len(lons))
+dst.createDimension('lat', size=len(lats))
+dst.createDimension('crs', size=1)
+
+# Copy variables
+for v_name, varin in data.variables.iteritems():
+    outVar = dst.createVariable(v_name, varin.datatype, varin.dimensions)
+    outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
+    if v_name == "crs":
+        outVar[:] = varin[:]
+
+dst.variables['lat'][:] = lats
+dst.variables['lon'][:] = lons
+dst.variables['time'][:] = time
+dst.variables[varname][:] = var
+
+dst.close()
+
 
