@@ -6,14 +6,14 @@ from netcdftime import utime
 import datetime
 
 src_path = "/data/maca_wusa/"
-dst_path = "/data/maca_mt/"
-varname = "air_temperature"
-fns = glob.glob(src_path + "*_tasmax_*.nc")
+dst_path = "/data/maca_mt2/"
+varname = "precipitation"
+fns = glob.glob(src_path + "*_pr_*.nc")
 bottomleft = [360 + -116.6, 44]
 topright = [360. + -103.5, 49.5] 
 
-# fn = fns[0]
-for fn in fns:
+fn = fns[58]
+for fn in fns[58]:
     data = Dataset(fn, 'r')
     v = data.variables
     dst_name = fn[16:-3] + "_MT.nc"
