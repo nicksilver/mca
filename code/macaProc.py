@@ -5,12 +5,11 @@ Description: Functions to process MACA data
 """
 
 import numpy as np
-from netCDF4 import Dataset
 from netcdftime import utime
 from osgeo import gdal, ogr
+import glob
 
 
-# Define function to find index of nearest grid cell
 def find_nearest(array, val):
     """
     Function to find index of nearest grid-cell in array.
@@ -117,5 +116,25 @@ def createMask(shp_path, x_min, y_min, x_max, y_max, ncols, nrows):
     return mask_arr
 
 
+def selectRCP(data_path, rcp='historical'):
+    """
+    Returns list of file names of the specified RCP (or historical).
+
+    data_path (str) -- path to data files
+    rcp (str) -- 'historical', 'rcp45', or 'rcp85'
+    """
+    
+    full_path = data_path + "*_" + rcp + "_*"
+    return glob.glob(full_path)
 
 
+def selectStr(fn_list, vstr):
+    """
+    Returns list of file names that contain the specified string. Should use
+    selectRCP() first to get fn_list.
+
+    fn_list (list) -- list of file names
+    vstr (str) -- string to match in the fn_list 
+    """
+    
+    return [s for s in fn_list if vstr in s]

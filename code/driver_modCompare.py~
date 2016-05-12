@@ -1,0 +1,9 @@
+import macaProc as mp
+
+data_path = "/data/maca_mt/"
+
+hist = mp.selectRCP(data_path, 'historical')
+hist_pr = mp.selectVar(hist, 'pr')
+hist_tmin = mp.selectVar(hist, 'tasmin')
+hist_tmax = mp.selectVar(hist, 'tasmax')
+
