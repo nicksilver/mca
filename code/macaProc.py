@@ -134,7 +134,14 @@ def selectStr(fn_list, vstr):
     selectRCP() first to get fn_list.
 
     fn_list (list) -- list of file names
-    vstr (str) -- string to match in the fn_list 
+    vstr (str or list) -- string (or list of strings) to match in the fn_list 
     """
-    
-    return [s for s in fn_list if vstr in s]
+    if type(vstr) == str:
+        out_list = [s for s in fn_list if vstr in s]
+    elif type(vstr) == list:
+        for i in vstr:
+            fn_list = [s for s in fn_list if i in s]
+        out_list = fn_list
+    else:
+        print "Input variable should be a string or list."
+    return out_list

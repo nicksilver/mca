@@ -53,14 +53,21 @@ def zstats(shp_path, net_path, var, year):
 
 class AggStats(object):
     """
-    This class will take a list of file names an aggregate them to compute
+    This class will take a list of file names and aggregate them to compute
     statistics (e.g. annual average of all models). 
     """
     def __init__(self, hist_list, fut_list):
         self.hist_list = hist_list
         self.fut_list = fut_list
 
-    def ann_diff():
-        pass
+    def mod_diff(self):
+        for fut_file in self.fut_list:
+            # get name of the model
+            mod_name = fut_file.split("_")[5]
+
+            # find historic file that matches future file
+            hist_file = [s for s in self.hist_list if mod_name in s][0]
+
+        print hist_file, fut_file
 
 

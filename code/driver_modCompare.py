@@ -1,9 +1,14 @@
 import macaProc as mp
+import macaStats as ms
 
 data_path = "/data/maca_mt/"
 
 hist = mp.selectRCP(data_path, 'historical')
 hist_pr = mp.selectStr(hist, '_pr_')
-hist_tmin = mp.selectStr(hist, '_tasmin_')
-hist_tmax = mp.selectStr(hist, '_tasmax_')
 
+fut = mp.selectRCP(data_path, 'rcp45')
+fut_pr = mp.selectStr(fut, ['_pr_', '2040_2069'])
+
+
+ModDiff = ms.AggStats(hist_pr, fut_pr)
+mod_names = ModDiff.mod_diff()
