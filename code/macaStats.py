@@ -60,14 +60,46 @@ class AggStats(object):
         self.hist_list = hist_list
         self.fut_list = fut_list
 
+    def get_latlon(self):
+        """
+        Returns lat and lon from the dataset.
+        """
+        data = Dataset(self.hist_list[0])
+        lat = data.variables['lat'][:]
+        lon = data.variables['lon'][:]
+        data.close()
+        return lat, lon
+
     def mod_diff(self):
-        for fut_file in self.fut_list:
-            # get name of the model
+        """
+        Find the projected change for each model in list
+        """
+        
+        # Find name of variable and change to netcdf name
+        vname = self.hist_list[0].split("_")[4]
+        if vname == "pr":
+            vname = "precipitation"
+        elif vname == "tasmin" | vname == "tasmax":
+            vname = "air_temperature"
+
+        # For each model in the list find the projected change
+        for fut_file in self.fut_list[0]:
+            # Get name of the model
             mod_name = fut_file.split("_")[5]
 
-            # find historic file that matches future file
+            # Find historic file that matches future file
             hist_file = [s for s in self.hist_list if mod_name in s][0]
+            
+            # Open datasets
+            fut_data = Dataset(fut_file)
+            hist_data = Dataset(hist_file)
+            
+            # Find average over time span
+            fut_avg = fut_data.variables[vname][:].mean(axis=0)
+            hist_avg = hist_data.variables[vname][:].mean(axis=0)
+            diff = hist_avg - fut_avg
+            
 
-        print hist_file, fut_file
+        return diff
 
 

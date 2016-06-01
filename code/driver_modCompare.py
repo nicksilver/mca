@@ -11,4 +11,5 @@ fut_pr = mp.selectStr(fut, ['_pr_', '2040_2069'])
 
 
 ModDiff = ms.AggStats(hist_pr, fut_pr)
+lat, lon = ModDiff.get_latlon()
 mod_names = ModDiff.mod_diff()
