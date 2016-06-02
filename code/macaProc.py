@@ -143,6 +143,8 @@ def select_str(fn_list, var, mod, yr=None):
 
     if yr:
         yr_list = [s for s in var_list if yr in s]
+    else:
+        yr_list = var_list
 
     out_list = []
     for i in mod:
