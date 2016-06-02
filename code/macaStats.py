@@ -72,8 +72,15 @@ class AggStats(object):
 
     def mod_diff(self):
         """
-        Find the projected change for each model in list
+        Find the projected change for each model in list. Returns a list of the model names
+        and an array of the results.
         """
+
+        # Set dimensions of output
+        mod_dim = len(self.hist_list)
+        lat, lon = self.get_latlon()
+        lat_dim = lat.shape[0]
+        lon_dim = lon.shape[0]
         
         # Find name of variable and change to netcdf name
         vname = self.hist_list[0].split("_")[4]
@@ -83,7 +90,10 @@ class AggStats(object):
             vname = "air_temperature"
 
         # For each model in the list find the projected change
-        for fut_file in self.fut_list[0]:
+        mod_list = []
+        diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
+        counter = 0
+        for fut_file in self.fut_list:
             # Get name of the model
             mod_name = fut_file.split("_")[5]
 
@@ -98,8 +108,17 @@ class AggStats(object):
             fut_avg = fut_data.variables[vname][:].mean(axis=0)
             hist_avg = hist_data.variables[vname][:].mean(axis=0)
             diff = hist_avg - fut_avg
-            
 
-        return diff
+            # Add diff to numpy array
+            diff_arr[counter, :, :] = diff
+
+            # Complete loop
+            counter += 1
+            fut_data.close()
+            hist_data.close()
+            print("Done processing " + mod_name)
+
+        print("Processing is complete. Thanks for your patience.")
+        return diff_arr
 
 

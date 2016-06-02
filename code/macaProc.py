@@ -128,13 +128,15 @@ def select_rcp(data_path, rcp='historical'):
     return glob.glob(full_path)
 
 
-def select_str(fn_list, var, mod, yr=None):
+def select_mod(fn_list, var, mod, yr=None):
     """
-    Returns list of file names that contain the specified string. Should use
+    Returns list of file names that contain the specified models. Should use
     select_rcp() first to get fn_list.
 
     fn_list (list) -- list of file names
-    vstr (str or list) -- string (or list of strings) to match in the fn_list 
+    var (str) -- variable to select
+    mod (list) -- list of models to select
+    yr (str) -- only use for future files to select year range
     """
     if type(mod) != list:
         raise Exception("'mod' parameter must be a list")
