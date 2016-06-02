@@ -51,11 +51,11 @@ def clip_data(data, var, bottom, top, right, left):
     t = find_nearest(data.variables['lat'][:], top)
 
     # Clip data
-    if var=='lat':
+    if var == 'lat':
         cdata = data.variables[var][t:b]
-    elif var=='lon':
+    elif var == 'lon':
         cdata = data.variables[var][l:r]
-    elif len(data.variables[var].shape)==2:
+    elif len(data.variables[var].shape) == 2:
         cdata = data.variables[var][t:b, l:r]
     else:
         cdata = data.variables[var][:, t:b, l:r]
@@ -73,7 +73,7 @@ def year_clip(data, var, begin, end):
         yvals[j] = dates[j].year
 
     # aggregate by year
-    var_data = data.variables[var][((yvals>begin-1) & (yvals<end+1)), :, :]
+    var_data = data.variables[var][((yvals > begin - 1) & (yvals < end + 1)), :, :]
 
     return var_data
 
@@ -99,8 +99,8 @@ def createMask(shp_path, x_min, y_min, x_max, y_max, ncols, nrows):
     :return: Clipped mask to be applied to numpy masked array.
     """
 
-    xres = (x_max - x_min)/float(ncols)
-    yres = (y_max - y_min)/float(nrows)
+    xres = (x_max - x_min) / float(ncols)
+    yres = (y_max - y_min) / float(nrows)
     sf = ogr.Open(shp_path)
     maskvalue = 1
     geotransform = (x_min, xres, 0, y_max, 0, -yres)
@@ -116,32 +116,37 @@ def createMask(shp_path, x_min, y_min, x_max, y_max, ncols, nrows):
     return mask_arr
 
 
-def selectRCP(data_path, rcp='historical'):
+def select_rcp(data_path, rcp='historical'):
     """
     Returns list of file names of the specified RCP (or historical).
 
     data_path (str) -- path to data files
     rcp (str) -- 'historical', 'rcp45', or 'rcp85'
     """
-    
+
     full_path = data_path + "*_" + rcp + "_*"
     return glob.glob(full_path)
 
 
-def selectStr(fn_list, vstr):
+def select_str(fn_list, var, mod, yr=None):
     """
     Returns list of file names that contain the specified string. Should use
-    selectRCP() first to get fn_list.
+    select_rcp() first to get fn_list.
 
     fn_list (list) -- list of file names
     vstr (str or list) -- string (or list of strings) to match in the fn_list 
     """
-    if type(vstr) == str:
-        out_list = [s for s in fn_list if vstr in s]
-    elif type(vstr) == list:
-        for i in vstr:
-            fn_list = [s for s in fn_list if i in s]
-        out_list = fn_list
-    else:
-        print "Input variable should be a string or list."
+    if type(mod) != list:
+        raise Exception("'mod' parameter must be a list")
+    var_new = "_" + var + "_"
+    var_list = [s for s in fn_list if var_new in s]
+
+    if yr:
+        yr_list = [s for s in var_list if yr in s]
+
+    out_list = []
+    for i in mod:
+        fn_list = [s for s in yr_list if i in s]
+        out_list.append(fn_list)
+
     return out_list

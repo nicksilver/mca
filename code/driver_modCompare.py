@@ -3,11 +3,11 @@ import macaStats as ms
 
 data_path = "/data/maca_mt/"
 
-hist = mp.selectRCP(data_path, 'historical')
-hist_pr = mp.selectStr(hist, '_pr_')
+hist = mp.select_rcp(data_path, 'historical')
+hist_pr = mp.select_str(hist, var='pr', mod=['HadGEM2-ES365', 'MIROC-ESM'])
 
-fut = mp.selectRCP(data_path, 'rcp45')
-fut_pr = mp.selectStr(fut, ['_pr_', '2040_2069'])
+fut = mp.select_rcp(data_path, 'rcp45')
+fut_pr = mp.select_str(fut, ['_pr_', '2040_2069', 'HadGEM2-ES365', 'MIROC-ESM'])
 
 
 ModDiff = ms.AggStats(hist_pr, fut_pr)
