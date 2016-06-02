@@ -149,6 +149,6 @@ def select_str(fn_list, var, mod, yr=None):
     out_list = []
     for i in mod:
         fn_list = [s for s in yr_list if i in s]
-        out_list.append(fn_list)
+        out_list = out_list + fn_list
 
     return out_list

@@ -1,13 +1,15 @@
 import macaProc as mp
 import macaStats as ms
 
-data_path = "/data/maca_mt/"
+# data_path = "/data/maca_mt/"
+data_path = "/media/nick/Seagate Backup Plus Drive/data/MCA_data/"
+mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 
 hist = mp.select_rcp(data_path, 'historical')
-hist_pr = mp.select_str(hist, var='pr', mod=['HadGEM2-ES365', 'MIROC-ESM'])
+hist_pr = mp.select_str(hist, var='pr', mod=mod_list)
 
 fut = mp.select_rcp(data_path, 'rcp45')
-fut_pr = mp.select_str(fut, ['_pr_', '2040_2069', 'HadGEM2-ES365', 'MIROC-ESM'])
+fut_pr = mp.select_str(fut, var='pr', mod=mod_list, yr='2070_2099')
 
 
 ModDiff = ms.AggStats(hist_pr, fut_pr)
