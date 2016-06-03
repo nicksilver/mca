@@ -5,7 +5,7 @@ import macaplots as mplt
 data_path = "/data/maca_mt/"
 save_path = "/home/nick/workspace/data"
 # data_path = "/media/nick/Seagate Backup Plus Drive/data/MCA_data/"
-mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 
 # Create list of files for historical data
 hist_rcp = mp.select_rcp(data_path, 'historical')

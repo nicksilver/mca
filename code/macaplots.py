@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 
+matplotlib.use("GTK")
 
 def mod_diff_comp(precip, temp, mod_names=None):
     """
