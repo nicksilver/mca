@@ -85,15 +85,24 @@ class AggStats(object):
         data.close()
         return lat, lon
 
-    def mod_diff(self, save=False, dpath="./", rname=False):
+    def mod_names(self):
+        """
+        Returns a list of the model names in the order used in mod_diff()
+        """
+        mod_list = []
+        for fut_file in self.fut_list:
+            # Get name of the model
+            mod_name = fut_file.split("_")[5]
+            mod_list.append(mod_name)
+        return mod_list
+
+    def mod_diff(self, save=False, dpath="./"):
         """
         Find the projected change for each model in list. Returns a list of the 
-        model names and an array of the results. Can also return a list of 
-        model names evaluated as a tuple in the result. 
+        model names and an array of the results.
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
-        rname (bool) -- returns the list of model names evaluated as a tuple.
         """
 
         # Set dimensions of output
@@ -144,9 +153,6 @@ class AggStats(object):
             print("Saving file...")
             np.save(dpath + "model_diffs_" + vname, diff_arr)
         print("Processing is complete. Thanks for your patience.")
-        if rname:
-            return diff_arr, mod_list
-        else:
-            return diff_arr
+        return diff_arr
 
 

@@ -17,7 +17,7 @@ def mod_diff_comp(precip, temp, mod_names=None):
     plt.xlabel("Change in Annual Precipitation ()")
     plt.ylabel("Change in Annual Temperature ()")
 
-    if mod_names:
+    if mod_names != None:
         for label, x, y, in zip(mod_names, precip_avg, temp_avg):
             plt.annotate(
                 label,

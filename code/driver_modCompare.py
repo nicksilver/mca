@@ -3,9 +3,9 @@ import macastats as ms
 import macaplots as mplt
 
 data_path = "/data/maca_mt/"
-save_path = "/home/nick/workspace/data"
+save_path = "./"  # "/home/nick/workspace/data/"
 # data_path = "/media/nick/Seagate Backup Plus Drive/data/MCA_data/"
-mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 
 # Create list of files for historical data
 hist_rcp = mp.select_rcp(data_path, 'historical')
@@ -21,8 +21,8 @@ fut_tmax = mp.select_mod(fut_rcp, var='tasmax', mod=mod_list, yr='2070_2099')
 
 # Calculate differences between historical and future for each model
 agstats_pr = ms.AggStats(hist_pr, fut_pr)
-mod_delta_pr, mod_names = agstats_pr.mod_diff(save=True, dpath=save_path, 
-                                              rname=True)
+mod_delta_pr = agstats_pr.mod_diff(save=False, dpath=save_path)
+mod_names = agstats_pr.mod_names()
 
 agstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
 mod_delta_tmin = agstats_tmin.mod_diff(save=True, dpath=save_path)
@@ -34,4 +34,4 @@ mod_delta_tavg = ms.temp_average(mod_delta_tmin, mod_delta_tmax,
                                  save=True, dpath=save_path)
 
 # Plot differences
-mplt.mod_diff_comp(mod_delta_pr, mod_delta_tavg, mod_names)
+mplt.mod_diff_comp(mod_delta_pr, mod_delta_tavg, mod_names=mod_names)
