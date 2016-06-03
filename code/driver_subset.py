@@ -1,7 +1,7 @@
 from netCDF4 import Dataset
 import numpy as np
 import glob
-import macaProc as mp
+import macaproc as mp
 from netcdftime import utime
 import datetime
 

@@ -51,6 +51,16 @@ def zstats(shp_path, net_path, var, year):
     return zs
 
 
+def temp_average(tmin, tmax):
+    """
+    Calculates averages of tmin and tmax to get tavg
+    :param tmin: numpy array of tmin values from mod_diff()
+    :param tmax: numpy array of tmax values from mod_diff()
+    :return: numpy array of average temperature.
+    """
+    return np.mean((tmin, tmax), axis=0)
+
+
 class AggStats(object):
     """
     This class will take a list of file names and aggregate them to compute
@@ -70,10 +80,13 @@ class AggStats(object):
         data.close()
         return lat, lon
 
-    def mod_diff(self):
+    def mod_diff(self, save=False, dpath="./"):
         """
-        Find the projected change for each model in list. Returns a list of the model names
-        and an array of the results.
+        Find the projected change for each model in list. Returns a list of the model
+        names and an array of the results.
+
+        save (bool) -- do you want to save numpy array?
+        dpath (str) -- destination directory for saving file
         """
 
         # Set dimensions of output
@@ -81,16 +94,16 @@ class AggStats(object):
         lat, lon = self.get_latlon()
         lat_dim = lat.shape[0]
         lon_dim = lon.shape[0]
+        print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
         
         # Find name of variable and change to netcdf name
         vname = self.hist_list[0].split("_")[4]
         if vname == "pr":
-            vname = "precipitation"
-        elif vname == "tasmin" | vname == "tasmax":
-            vname = "air_temperature"
+            netname = "precipitation"
+        elif vname == "tasmin" or vname == "tasmax":
+            netname = "air_temperature"
 
         # For each model in the list find the projected change
-        mod_list = []
         diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
         counter = 0
         for fut_file in self.fut_list:
@@ -105,9 +118,9 @@ class AggStats(object):
             hist_data = Dataset(hist_file)
             
             # Find average over time span
-            fut_avg = fut_data.variables[vname][:].mean(axis=0)
-            hist_avg = hist_data.variables[vname][:].mean(axis=0)
-            diff = hist_avg - fut_avg
+            fut_avg = fut_data.variables[netname][:].mean(axis=0)
+            hist_avg = hist_data.variables[netname][:].mean(axis=0)
+            diff = fut_avg - hist_avg
 
             # Add diff to numpy array
             diff_arr[counter, :, :] = diff
@@ -118,6 +131,9 @@ class AggStats(object):
             hist_data.close()
             print("Done processing " + mod_name)
 
+        if save:
+            print("Saving file...")
+            np.save(dpath + "model_diffs_" + vname, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 

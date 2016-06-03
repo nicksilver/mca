@@ -9,6 +9,7 @@ __pycache__/
 # Other
 *.py#
 *.py~
+*.npy
 
 # Distribution / packaging
 .Python
@@ -64,3 +65,4 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+.idea/
