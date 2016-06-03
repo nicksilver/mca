@@ -128,7 +128,7 @@ def select_rcp(data_path, rcp='historical'):
     return glob.glob(full_path)
 
 
-def select_mod(fn_list, var, mod, yr=None):
+def select_mod(fn_list, var, mod=None, yr=None):
     """
     Returns list of file names that contain the specified models. Should use
     select_rcp() first to get fn_list.
@@ -138,8 +138,6 @@ def select_mod(fn_list, var, mod, yr=None):
     mod (list) -- list of models to select
     yr (str) -- only use for future files to select year range
     """
-    if type(mod) != list:
-        raise Exception("'mod' parameter must be a list")
     var_new = "_" + var + "_"
     var_list = [s for s in fn_list if var_new in s]
 
@@ -149,8 +147,13 @@ def select_mod(fn_list, var, mod, yr=None):
         yr_list = var_list
 
     out_list = []
-    for i in mod:
-        fn_list = [s for s in yr_list if i in s]
-        out_list = out_list + fn_list
-
+    
+    if mod:
+        if type(mod) != list:
+            raise Exception("'mod' parameter must be a list")
+        for i in mod:
+            fn_list = [s for s in yr_list if i in s]
+            out_list = out_list + fn_list
+    else:
+        out_list = yr_list
     return out_list

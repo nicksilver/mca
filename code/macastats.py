@@ -51,14 +51,19 @@ def zstats(shp_path, net_path, var, year):
     return zs
 
 
-def temp_average(tmin, tmax):
+def temp_average(tmin, tmax, save=False, dpath="./"):
     """
     Calculates averages of tmin and tmax to get tavg
     :param tmin: numpy array of tmin values from mod_diff()
     :param tmax: numpy array of tmax values from mod_diff()
+    :param save: boolean for whether to save
+    :param dpath: directory path for saving
     :return: numpy array of average temperature.
     """
-    return np.mean((tmin, tmax), axis=0)
+    tavg = np.mean((tmin, tmax), axis=0)
+    if save:
+        np.save(dpath + "model_diffs_tavg", tavg)
+    return tavg
 
 
 class AggStats(object):
@@ -80,13 +85,15 @@ class AggStats(object):
         data.close()
         return lat, lon
 
-    def mod_diff(self, save=False, dpath="./"):
+    def mod_diff(self, save=False, dpath="./", rname=False):
         """
-        Find the projected change for each model in list. Returns a list of the model
-        names and an array of the results.
+        Find the projected change for each model in list. Returns a list of the 
+        model names and an array of the results. Can also return a list of 
+        model names evaluated as a tuple in the result. 
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
+        rname (bool) -- returns the list of model names evaluated as a tuple.
         """
 
         # Set dimensions of output
@@ -106,9 +113,11 @@ class AggStats(object):
         # For each model in the list find the projected change
         diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
         counter = 0
+        mod_list = []
         for fut_file in self.fut_list:
             # Get name of the model
             mod_name = fut_file.split("_")[5]
+            mod_list.append(mod_name)
 
             # Find historic file that matches future file
             hist_file = [s for s in self.hist_list if mod_name in s][0]
@@ -135,6 +144,9 @@ class AggStats(object):
             print("Saving file...")
             np.save(dpath + "model_diffs_" + vname, diff_arr)
         print("Processing is complete. Thanks for your patience.")
-        return diff_arr
+        if rname:
+            return diff_arr, mod_list
+        else:
+            return diff_arr
 
 
