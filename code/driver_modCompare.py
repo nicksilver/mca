@@ -1,11 +1,13 @@
 import macaproc as mp
 import macastats as ms
 import macaplots as mplt
+import numpy as np
+import pickle
 
-data_path = "/data/maca_mt/"
-save_path = "./"  # "/home/nick/workspace/data/"
-# data_path = "/media/nick/Seagate Backup Plus Drive/data/MCA_data/"
-mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+# data_path = "/data/maca_mt/"
+save_path = "/home/nick/MEGA/business/MCO/MCA/data/"
+data_path = "/media/nick/Seagate Backup Plus Drive/data/MCA_data/"
+mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 
 # Create list of files for historical data
 hist_rcp = mp.select_rcp(data_path, 'historical')
@@ -25,13 +27,17 @@ mod_delta_pr = agstats_pr.mod_diff(save=False, dpath=save_path)
 mod_names = agstats_pr.mod_names()
 
 agstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
-mod_delta_tmin = agstats_tmin.mod_diff(save=True, dpath=save_path)
+mod_delta_tmin = agstats_tmin.mod_diff(save=False, dpath=save_path)
 
 agstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
-mod_delta_tmax = agstats_tmax.mod_diff(save=True, dpath=save_path)
+mod_delta_tmax = agstats_tmax.mod_diff(save=False, dpath=save_path)
 
 mod_delta_tavg = ms.temp_average(mod_delta_tmin, mod_delta_tmax, 
-                                 save=True, dpath=save_path)
+                                 save=False, dpath=save_path)
 
 # Plot differences
-mplt.mod_diff_comp(mod_delta_pr, mod_delta_tavg, mod_names=mod_names)
+mod_delta_tavg = np.load(save_path + "model_diffs_tavg.npy")
+mod_delta_pr = np.load(save_path + "model_diffs_pr.npy")
+mod_names = pickle.load(open(save_path + "model_list.p", 'rb'))
+
+mplt.mod_diff_comp(mod_delta_pr, mod_delta_tavg)
