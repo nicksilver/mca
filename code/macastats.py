@@ -119,6 +119,10 @@ class AggStats(object):
         elif vname == "tasmin" or vname == "tasmax":
             netname = "air_temperature"
 
+        # Find end year and scenario
+        end_yr = self.fut_list[0].split("_")[9]
+        rcp = self.fut_list[0].split("_")[6]
+
         # For each model in the list find the projected change
         diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
         counter = 0
@@ -151,7 +155,8 @@ class AggStats(object):
 
         if save:
             print("Saving file...")
-            np.save(dpath + "model_diffs_" + vname, diff_arr)
+            name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
+            np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
