@@ -9,6 +9,7 @@ data_path = "/data/maca_mt/"
 save_path = "/home/nick/workspace/data/"
 # data_path = "/media/nick/Seagate Backup Plus Drive/data/MCA_data/"
 mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+rcp_scen = "rcp85"
 
 # Create list of files for historical data
 hist_rcp = mp.select_rcp(data_path, 'historical')
@@ -17,7 +18,7 @@ hist_tmin = mp.select_mod(hist_rcp, var='tasmin', mod=mod_list)
 hist_tmax = mp.select_mod(hist_rcp, var='tasmax', mod=mod_list)
 
 # Create list of files for future data
-fut_rcp = mp.select_rcp(data_path, 'rcp85')
+fut_rcp = mp.select_rcp(data_path, rcp_scen)
 fut_pr = mp.select_mod(fut_rcp, var='pr', mod=mod_list, yr='2070_2099')
 fut_tmin = mp.select_mod(fut_rcp, var='tasmin', mod=mod_list, yr='2070_2099')
 fut_tmax = mp.select_mod(fut_rcp, var='tasmax', mod=mod_list, yr='2070_2099')
@@ -46,5 +47,5 @@ mod_names = pickle.load(open(save_path + "model_list.p", 'rb'))
 mplt.mod_diff_comp(mod_delta_pr_45, mod_delta_tavg_45,
                    precip2=mod_delta_pr_85, temp2=mod_delta_tavg_85,
                    title="CMIP5 Ensemble for 2070-2099",
-                   mod_names=mod_names, annotate=True)
+                   mod_names=mod_names, annotate=True, id_subset=mod_list)
 

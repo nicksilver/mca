@@ -9,25 +9,23 @@ import numpy as np
 from rasterstats import zonal_stats
 from netCDF4 import Dataset
 from affine import Affine
+import json
 
 
-def zstats(shp_path, net_path, var, year):
+def zstats(gis_path, net_data, cd_list=True):
     """
     Returns zonal stats of netcdf raster data from shapefile for a specified
     year.
 
-    :param shp_path: path to shapefile (str)
+    :param gis_path: path to shapefile (str)
 
-    :param net_path: path to netcdf file (str)
+    :param net_data: numpy array of data
 
-    :param var: netcdf variable name (str)
-
-    :param year: index for specified year in netcdf file (int)
+    :param cd_list: should I include the names of the climate divisions with the
+    output?
 
     :return: the grid-cell count, min, max, and mean of shapefile object
     """
-    net_data = Dataset(net_path, 'r')
-    data = net_data.variables[var][0, :, :]
 
     # Affine transformation information:
     # a = width of a pixel
@@ -37,18 +35,47 @@ def zstats(shp_path, net_path, var, year):
     # e = height of a pixel (typically negative)
     # f = y-coordinate of the of the upper-left corner of the upper-left pixel
 
-    a = float(getattr(net_data, "geospatial_lon_resolution"))
+    a = 0.0417
     b = 0
-    c = float(getattr(net_data, "geospatial_lon_min")) - a
+    c = -116.6056 - a
     d = 0
-    e = -float(getattr(net_data, "geospatial_lat_resolution"))
-    f = float(getattr(net_data, "geospatial_lat_max")) - e 
-
+    e = -0.0417
+    f = 49.3127 - e
     aff = Affine(a, b, c, d, e, f)
-    net_data.close()
-    zs = zonal_stats(shp_path, data, affine=aff)
 
+    # Get zone stats for
+    zs = zonal_stats(gis_path + ".shp", net_data, affine=aff)
+
+    # Combine clim div names with zone stats
+    if cd_list:
+        # Get names of climate divisions from json file
+        with open(gis_path + ".json") as jfile:
+            jdata = json.load(jfile)
+
+        cd_names = []
+        for cd in jdata['objects']['MT_CLIM_DIVISIONS']['geometries']:
+            cd_name = cd['properties']['CLIMDIV']
+            cd_names.append(cd_name)
+
+        for i in range(len(zs)):
+            zs[i]['climdiv'] = cd_names[i]
     return zs
+
+
+def clim_div_names(json_path):
+    """
+    Returns a list of the climate division names to be used with zstats()
+    json_path (str) - path to json file
+    """
+    with open(json_path) as jfile:
+        jdata = json.load(jfile)
+
+    cd_names = []
+    for cd in jdata['objects']['MT_CLIM_DIVISIONS']['geometries']:
+        cd_name = cd['properties']['CLIMDIV']
+        cd_names.append(cd_name)
+
+    return cd_names
 
 
 def temp_average(tmin, tmax, save=False, dpath="./"):
