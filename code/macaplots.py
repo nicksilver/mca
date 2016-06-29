@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from bokeh.plotting import figure, show, output_file, ColumnDataSource
+from bokeh.models import HoverTool
+import pandas as pd
 
 
 def mod_diff_comp(precip1, temp1, leg_lab1="RCP 4.5",
@@ -62,6 +65,117 @@ def mod_diff_comp(precip1, temp1, leg_lab1="RCP 4.5",
                 textcoords='offset points', ha='center', va='bottom',
             )
     plt.show()
+
+
+def mod_diff_comp_bok(precip1, temp1, mod_names, filepath=None, leg_lab1="RCP 4.5",
+                  precip2=None, temp2=None, leg_lab2="RCP 8.5",
+                  title="", annotate=False, id_subset=[]):
+    """
+    Creates an INTERACTIVE html scatter plot of temp and precip difference for each
+    specified model.
+    :param precip: numpy array of projected change in precipitation for each model
+    :param temp: numpy array of projected change in temp for each model
+    :param leg_lab: str for legend label
+    :param title: str for figure title
+    :param mod_names: list of model names used to create legend and annotate plot
+    :param annotate: should the markers be annotated?
+    :param id_subset: list of the model of names that are a subset of all mod_names
+    :return: scatter plot
+    """
+    # Flatten numpy array
+    precip_avg1 = np.mean(precip1, axis=1).mean(axis=1)
+    temp_avg1 = np.mean(temp1, axis=1).mean(axis=1)
+
+    if precip2 is None:
+
+        # Configure Bokeh tools
+        source = ColumnDataSource(
+            data=dict(
+                x=list(precip_avg1),
+                y=list(temp_avg1),
+                model=mod_names
+            )
+        )
+        TOOLS = "pan,wheel_zoom,save,hover"
+        p = figure(tools=TOOLS)
+
+        # Create scatter plot
+        p.scatter(precip_avg1, temp_avg1, size=15, source=source)
+
+        # Custom dictionary for tooltip
+        p.select_one(HoverTool).tooltips = [
+            ("Model", "@model"),
+            ("Delta Precip", "@x"),
+            ("Delta Temp", "@y")
+            ]
+
+        # Save html file
+        if filepath is not None:
+            output_file(filepath)
+
+        # Open browser with image
+        show(p)
+
+    elif precip2 is not None:
+
+        # Flatten numpy array
+        precip_avg2 = np.mean(precip2, axis=1).mean(axis=1)
+        temp_avg2 = np.mean(temp2, axis=1).mean(axis=1)
+
+        # Create pandas dataframe
+        prec = np.hstack((precip_avg1, precip_avg2))
+        temp = np.hstack((temp_avg1, temp_avg2))
+        rcp = np.hstack((np.repeat("RCP 4.5", len(precip_avg1)),
+                         np.repeat("RCP 8.5", len(precip_avg2))))
+        df = pd.DataFrame(
+            data=dict(
+                precip=prec,
+                temp=temp,
+                rcp=rcp,
+                model=mod_names+mod_names
+            )
+        )
+
+        # Create colormap
+        colormap = {'RCP 4.5': 'blue', 'RCP 8.5': 'red'}
+        colors = [colormap[x] for x in df['rcp']]
+
+
+        # Configure Bokeh tools
+        source = ColumnDataSource(
+            data=dict(
+                x=list(df['precip']),
+                y=list(df['temp']),
+                rcp=list(df['rcp']),
+                model=list(df['model'])
+            )
+        )
+
+        #TODO Confirm that mod_names aligns with precip and temp
+
+        TOOLS = "pan,wheel_zoom,save,hover"
+        p = figure(tools=TOOLS)
+
+        # Create scatter plot
+        p.scatter(precip_avg1, temp_avg1, size=15, source=source)
+
+        # Custom dictionary for tooltip
+        p.select_one(HoverTool).tooltips = [
+            ("Model", "@model"),
+            ("Delta Precip", "@x"),
+            ("Delta Temp", "@y")
+            ]
+
+        # Save html file
+        if filepath is not None:
+            output_file(filepath)
+
+        # Open browser with image
+        show(p)
+
+
+
+
 
 
 def clim_div_temp_grid():

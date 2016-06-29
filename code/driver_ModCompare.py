@@ -44,8 +44,8 @@ mod_delta_pr_85 = np.load(save_path + "model_diffs_pr_rcp85_2099.npy")
 mod_delta_pr_45 = np.load(save_path + "model_diffs_pr_rcp45_2099.npy")
 mod_names = pickle.load(open(save_path + "model_list.p", 'rb'))
 
-mplt.mod_diff_comp(mod_delta_pr_45, mod_delta_tavg_45,
-                   precip2=mod_delta_pr_85, temp2=mod_delta_tavg_85,
-                   title="CMIP5 Ensemble for 2070-2099",
-                   mod_names=mod_names, annotate=True, id_subset=mod_list)
+mplt.mod_diff_comp_bok(mod_delta_pr_45, mod_delta_tavg_45, filepath=None,
+                       precip2=mod_delta_pr_85, temp2=mod_delta_tavg_85,
+                       title="CMIP5 Ensemble for 2070-2099",
+                       mod_names=mod_names, annotate=True)
 
