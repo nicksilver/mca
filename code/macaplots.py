@@ -123,48 +123,66 @@ def mod_diff_comp_bok(precip1, temp1, mod_names, filepath=None, leg_lab1="RCP 4.
         temp_avg2 = np.mean(temp2, axis=1).mean(axis=1)
 
         # Create pandas dataframe
-        prec = np.hstack((precip_avg1, precip_avg2))
-        temp = np.hstack((temp_avg1, temp_avg2))
-        rcp = np.hstack((np.repeat("RCP 4.5", len(precip_avg1)),
-                         np.repeat("RCP 8.5", len(precip_avg2))))
-        df = pd.DataFrame(
-            data=dict(
-                precip=prec,
-                temp=temp,
-                rcp=rcp,
-                model=mod_names+mod_names
-            )
-        )
+        # prec = np.hstack((precip_avg1, precip_avg2))
+        # temp = np.hstack((temp_avg1, temp_avg2))
+        # rcp = np.hstack((np.repeat("RCP 4.5", len(precip_avg1)),
+        #                  np.repeat("RCP 8.5", len(precip_avg2))))
 
         # Create colormap
-        colormap = {'RCP 4.5': 'blue', 'RCP 8.5': 'red'}
-        colors = [colormap[x] for x in df['rcp']]
+        # colormap = {'RCP 4.5': 'blue', 'RCP 8.5': 'red'}
+        # colors = [colormap[x] for x in list(rcp)]
 
-
-        # Configure Bokeh tools
-        source = ColumnDataSource(
-            data=dict(
-                x=list(df['precip']),
-                y=list(df['temp']),
-                rcp=list(df['rcp']),
-                model=list(df['model'])
-            )
-        )
+        # source = ColumnDataSource(
+        #     data=dict(
+        #         prec=list(prec),
+        #         temp=list(temp),
+        #         rcp=list(rcp),
+        #         model=mod_names+mod_names
+        #     )
+        # )
 
         #TODO Confirm that mod_names aligns with precip and temp
 
         TOOLS = "pan,wheel_zoom,save,hover"
-        p = figure(tools=TOOLS)
+        tips1 = [
+            ("Scenario", "RCP 4.5"),
+            ("Model", mod_names),
+            ("Delta Precip", precip_avg1),
+            ("Delta Temp", temp_avg1)
+            ]
+        tips2 = [
+            ("Scenario", "RCP 8.5"),
+            ("Model", mod_names),
+            ("Delta Precip", precip_avg2),
+            ("Delta Temp", temp_avg2)
+            ]
+
+        # p.select(HoverTool).tooltips = [
+        #     ("Scenario", "@rcp"),
+        #     ("Model", "@model"),
+        #     ("Delta Precip", "@prec"),
+        #     ("Delta Temp", "@temp")
+        #     ]
+        p = figure()
 
         # Create scatter plot
-        p.scatter(precip_avg1, temp_avg1, size=15, source=source)
+        # p.scatter(prec, temp, color=colors, size=15, source=source, legend=True)
+        # p.legend
+        r1 = p.scatter(precip_avg1, temp_avg1, color="blue", size=15, legend="RCP 4.5")
+                       #source=source)
+        p.add_tools(HoverTool(renderers=[r1], tooltips=tips1))
+        r2 = p.scatter(precip_avg2, temp_avg2, color="red", size=15, legend="RCP 8.5")
+                       #source=source)
+        p.add_tools(HoverTool(renderers=[r2], tooltips=tips2))
+
 
         # Custom dictionary for tooltip
-        p.select_one(HoverTool).tooltips = [
-            ("Model", "@model"),
-            ("Delta Precip", "@x"),
-            ("Delta Temp", "@y")
-            ]
+        # p.select(HoverTool).tooltips = [
+        #     ("Scenario", "@rcp"),
+        #     ("Model", "@model"),
+        #     ("Delta Precip", "@prec"),
+        #     ("Delta Temp", "@temp")
+        #     ]
 
         # Save html file
         if filepath is not None:
