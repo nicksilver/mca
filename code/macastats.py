@@ -153,11 +153,9 @@ class AggStats(object):
         # For each model in the list find the projected change
         diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
         counter = 0
-        mod_list = []
         for fut_file in self.fut_list:
             # Get name of the model
             mod_name = fut_file.split("_")[5]
-            mod_list.append(mod_name)
 
             # Find historic file that matches future file
             hist_file = [s for s in self.hist_list if mod_name in s][0]
