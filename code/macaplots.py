@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bokeh.plotting import figure, show, output_file, ColumnDataSource
 from bokeh.models import HoverTool
-import pandas as pd
+from bokeh.palettes import Oranges8
+import fiona
 
 
 def mod_diff_comp(precip1, temp1, leg_lab1="RCP 4.5",
@@ -161,6 +162,54 @@ def mod_diff_comp_bok(precip1, temp1, mod_names, filepath=None,
         # Open browser with image
         show(p)
 
+
+def clim_div_plot(clim_div_shp, stats_dict):
+    """
+    Returns change in specified variable for each climate division.
+    """
+    pass
+
+clim_div_shp = shpfile + '.shp'
+stats_dict = tavg_zstats
+title = "Montana Temperature Difference (C)"
+
+c = fiona.open(clim_div_shp)
+data = list(c)
+c.close()
+coords = [div['geometry']['coordinates'] for div in data]
+coords_clean = [div[0] for div in coords]
+xs = [[x for x, y in n] for n in coords_clean]
+ys = [[y for x, y in n] for n in coords_clean]
+values = [val['mean'] for val in stats_dict]
+cd_names = [val['climdiv'] for val in stats_dict]
+colors = [Oranges8[int(value)] for value in values]
+
+source = ColumnDataSource(data=dict(
+    x=xs,
+    y=ys,
+    color=colors,
+    name=cd_names,
+    difference=values))
+
+TOOLS="pan,wheel_zoom,box_zoom,reset,hover,save"
+p = figure(tools=TOOLS, plot_width=1100, plot_height=700, title=title)
+p.grid.grid_line_color = None
+p.xaxis.axis_label = "Longitude"
+p.yaxis.axis_label = "Latitude"
+p.patches('x', 'y', fill_alpha=0.5, line_color='white', line_width=1.5,
+          source=source, fill_color='color')
+
+hover = p.select_one(HoverTool)
+hover.point_policy = 'follow_mouse'
+hover.tooltips = [
+    ("Climate Div.", "@name"),
+    ("Difference", "@difference"),
+    ("(Long, Lat)", "($x, $y)")
+]
+
+output_file("clim_div_temp_diff.html")
+show(p)
+    
 
 def clim_div_temp_grid():
     """

@@ -5,8 +5,11 @@ import numpy as np
 
 
 # data_path = "/data/maca_mt/"
-gis_path = "/home/nick/workspace/shapefiles/"
+# gis_path = "/home/nick/workspace/shapefiles/"
+data_path = "/home/nick/workspace/data/mca_data/"
 save_path = None
+
+######## PROCESSING ###########
 # mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 # rcp_scen = "rcp45"
 
@@ -23,21 +26,19 @@ save_path = None
 # Calculate differences between historical and future for each model
 # agstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
 # mod_delta_tmin = agstats_tmin.mod_diff(save=False, dpath=save_path)
-mod_delta_tmin = np.load("/home/nick/workspace/data/model_diffs_tasmin_rcp45_2099.npy")
-
 # agstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
 # mod_delta_tmax = agstats_tmax.mod_diff(save=False, dpath=save_path)
-mod_delta_tmax = np.load("/home/nick/workspace/data/model_diffs_tasmax_rcp45_2099.npy")
 
-
+# Load data
+mod_delta_tmin = np.load(data_path + "model_diffs_tasmin_rcp45_2099.npy")
+mod_delta_tmax = np.load(data_path + "/model_diffs_tasmax_rcp45_2099.npy")
 mod_delta_tavg = ms.temp_average(mod_delta_tmin, mod_delta_tmax,
                                  save=False, dpath=save_path)
 
-
 # Calculate clim div stats
-tavg_zstats = ms.zstats(gis_path + "MT_CLIM_DIVISIONS",
-                        mod_delta_tavg.mean(axis=0),
-                        cd_list=True)
+shpfile = data_path + "MT_CLIM_DIVISIONS.shp"
+tavg_zstats = ms.zstats(shpfile, mod_delta_tavg.mean(axis=0), cd_list=True)
+
 
 
 # Plot
