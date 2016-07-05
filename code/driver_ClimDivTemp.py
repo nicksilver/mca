@@ -36,7 +36,7 @@ mod_delta_tavg = ms.temp_average(mod_delta_tmin, mod_delta_tmax,
                                  save=False, dpath=save_path)
 
 # Calculate clim div stats
-shpfile = data_path + "MT_CLIM_DIVISIONS.shp"
+shpfile = data_path + "MT_CLIM_DIVISIONS"
 tavg_zstats = ms.zstats(shpfile, mod_delta_tavg.mean(axis=0), cd_list=True)
 
 
