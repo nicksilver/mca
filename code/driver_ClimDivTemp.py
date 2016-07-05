@@ -5,8 +5,8 @@ import numpy as np
 
 
 # data_path = "/data/maca_mt/"
-# gis_path = "/home/nick/workspace/shapefiles/"
-data_path = "/home/nick/workspace/data/mca_data/"
+gis_path = "/home/nick/workspace/shapefiles/"
+data_path = "/home/nick/workspace/data/"
 save_path = None
 
 ######## PROCESSING ###########
@@ -36,9 +36,10 @@ mod_delta_tavg = ms.temp_average(mod_delta_tmin, mod_delta_tmax,
                                  save=False, dpath=save_path)
 
 # Calculate clim div stats
-shpfile = data_path + "MT_CLIM_DIVISIONS"
+shpfile = gis_path + "MT_CLIM_DIVISIONS"
 tavg_zstats = ms.zstats(shpfile, mod_delta_tavg.mean(axis=0), cd_list=True)
 
 
-
 # Plot
+cd_plot = mplt.clim_divs(shpfile + '.shp')
+cd_plot.temp_plot(tavg_zstats, "Temperature Change (C)")

@@ -163,53 +163,73 @@ def mod_diff_comp_bok(precip1, temp1, mod_names, filepath=None,
         show(p)
 
 
-def clim_div_plot(clim_div_shp, stats_dict):
+class clim_divs(object):
     """
-    Returns change in specified variable for each climate division.
+    Object to plot climate data by climate divisions.
     """
-    pass
+    def __init__(self, clim_div_shp):
+        self.clim_div_shp = clim_div_shp
+        c = fiona.open(clim_div_shp)
+        self.data = list(c)
+        c.close()
+        coords = [div['geometry']['coordinates'] for div in self.data]
+        coords_clean = [div[0] for div in coords]
+        self.xs = [[x for x, y in n] for n in coords_clean]
+        self.ys = [[y for x, y in n] for n in coords_clean]
+        
 
-clim_div_shp = shpfile + '.shp'
-stats_dict = tavg_zstats
-title = "Montana Temperature Difference (C)"
+    def temp_plot(self, stats_dict, title="", savepath=None):
+        """
+        Returns change in temp. variable for each climate division.
 
-c = fiona.open(clim_div_shp)
-data = list(c)
-c.close()
-coords = [div['geometry']['coordinates'] for div in data]
-coords_clean = [div[0] for div in coords]
-xs = [[x for x, y in n] for n in coords_clean]
-ys = [[y for x, y in n] for n in coords_clean]
-values = [val['mean'] for val in stats_dict]
-cd_names = [val['climdiv'] for val in stats_dict]
-colors = [Oranges8[int(value)] for value in values]
+        clim_div_shp - climate division shapefile (includes '.shp')
+        stats_dict - results from macastats.zstats()
+        title - main figure title
+        savepath - add path to save html file
+        """
 
-source = ColumnDataSource(data=dict(
-    x=xs,
-    y=ys,
-    color=colors,
-    name=cd_names,
-    difference=values))
+        values = [val['mean'] for val in stats_dict]
+        cd_names = [val['climdiv'] for val in stats_dict]
+        colors = [Oranges8[int(value)] for value in values]
 
-TOOLS="pan,wheel_zoom,box_zoom,reset,hover,save"
-p = figure(tools=TOOLS, plot_width=1100, plot_height=700, title=title)
-p.grid.grid_line_color = None
-p.xaxis.axis_label = "Longitude"
-p.yaxis.axis_label = "Latitude"
-p.patches('x', 'y', fill_alpha=0.5, line_color='white', line_width=1.5,
-          source=source, fill_color='color')
+        source = ColumnDataSource(data=dict(
+            x=self.xs,
+            y=self.ys,
+            color=colors,
+            name=cd_names,
+            difference=values))
 
-hover = p.select_one(HoverTool)
-hover.point_policy = 'follow_mouse'
-hover.tooltips = [
-    ("Climate Div.", "@name"),
-    ("Difference", "@difference"),
-    ("(Long, Lat)", "($x, $y)")
-]
+        TOOLS="pan,wheel_zoom,box_zoom,reset,hover,save"
+        p = figure(tools=TOOLS, plot_width=1100, plot_height=700, title=title)
+        p.grid.grid_line_color = None
+        p.xaxis.axis_label = "Longitude"
+        p.yaxis.axis_label = "Latitude"
+        p.patches('x', 'y', fill_alpha=0.5, line_color='white', line_width=1.5,
+                  source=source, fill_color='color')
 
-output_file("clim_div_temp_diff.html")
-show(p)
+        hover = p.select_one(HoverTool)
+        hover.point_policy = 'follow_mouse'
+        hover.tooltips = [
+            ("Climate Div.", "@name"),
+            ("Difference", "@difference"),
+            ("(Long, Lat)", "($x, $y)")
+        ]
+        
+        if savepath is not None:
+            output_file(savepath)
+        show(p)
     
+    def prec_plot(self, stats_dict, title="", savepath=None):
+        """
+        Returns change in precip variable for each climate division.
+
+        clim_div_shp - climate division shapefile (includes '.shp')
+        stats_dict - results from macastats.zstats()
+        title - main figure title
+        savepath - add path to save html file
+        """
+        pass
+
 
 def clim_div_temp_grid():
     """
