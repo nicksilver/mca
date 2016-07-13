@@ -98,9 +98,11 @@ class AggStats(object):
     This class will take a list of file names and aggregate them to compute
     statistics (e.g. annual average of all models).
     """
+
     def __init__(self, hist_list, fut_list):
         self.hist_list = hist_list
         self.fut_list = fut_list
+
 
     def get_latlon(self):
         """
@@ -112,6 +114,7 @@ class AggStats(object):
         data.close()
         return lat, lon
 
+
     def mod_names(self):
         """
         Returns a list of the model names in the order used in mod_diff()
@@ -122,6 +125,7 @@ class AggStats(object):
             mod_name = fut_file.split("_")[5]
             mod_list.append(mod_name)
         return mod_list
+
 
     def mod_diff_ann(self, save=False, dpath="./"):
         """
@@ -186,7 +190,7 @@ class AggStats(object):
         return diff_arr
 
 
-    def mod_diff_mon():
+    def mod_diff_mon(self, save=False, dpath="./"):
         """
         Find the projected monthly change for each model in list. Returns a list
         of the model names and an array of the results.
