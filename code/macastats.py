@@ -189,7 +189,17 @@ class AggStats(object):
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
+    def timestamp(self):
+        """
+        Returns datetime list from time variable in netcdf file.
+        """
+        days_offset = -25567
+        sec_day = 24*60*60
+        data = Dataset(self.fut_list[0])
+        t = data.variables['time'][:]
 
+        data.close()
+    
     def mod_diff_mon(self, save=False, dpath="./"):
         """
         Find the projected monthly change for each model in list. Returns a list

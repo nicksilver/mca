@@ -4,9 +4,9 @@ import macaplots as mplt
 import numpy as np
 
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
+# data_path = "/home/nick/workspace/data/"
 gis_path = "/home/nick/workspace/shapefiles/"
-data_path = "/home/nick/workspace/data/"
 save_path = None
 
 ######## Annual Ensemble Differences ###########
@@ -25,8 +25,21 @@ fut_tmax = mp.select_mod(fut_rcp, var='tasmax', mod=mod_list, yr='2070_2099')
 
 # Calculate differences between historical and future for each model
 agstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
-mod_delta_tmin = agstats_tmin.mod_diff(save=False, dpath=save_path)
+mod_delta_tmin = agstats_tmin.mod_diff_ann(save=False, dpath=save_path)
 agstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
-mod_delta_tmax = agstats_tmax.mod_diff(save=False, dpath=save_path)
+mod_delta_tmax = agstats_tmax.mod_diff_ann(save=False, dpath=save_path)
 
 ######## Monthly Ensemble Differences ###########
+from netCDF4 import Dataset
+import datetime
+import time
+data = Dataset(fut_tmax[0])
+v = data.variables['air_temperature'][:]
+t = data.variables['time'][:]
+days_offset = -25567
+sec_day = 24*60*60
+tl = datetime.datetime.fromtimestamp((t+days_offset)*sec_day)
+
+
+v.shape
+10957/365.
