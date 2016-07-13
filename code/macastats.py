@@ -1,7 +1,7 @@
 """
 Created by: Nick Silverman
 Date: April 13th, 2016
-Description: Functions to calculate statistics in from raster data and 
+Description: Functions to calculate statistics in from raster data and
 shapefiles.
 """
 
@@ -96,7 +96,7 @@ def temp_average(tmin, tmax, save=False, dpath="./"):
 class AggStats(object):
     """
     This class will take a list of file names and aggregate them to compute
-    statistics (e.g. annual average of all models). 
+    statistics (e.g. annual average of all models).
     """
     def __init__(self, hist_list, fut_list):
         self.hist_list = hist_list
@@ -123,10 +123,10 @@ class AggStats(object):
             mod_list.append(mod_name)
         return mod_list
 
-    def mod_diff(self, save=False, dpath="./"):
+    def mod_diff_ann(self, save=False, dpath="./"):
         """
-        Find the projected change for each model in list. Returns a list of the 
-        model names and an array of the results.
+        Find the projected annual change for each model in list. Returns a list
+        of the model names and an array of the results.
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
@@ -138,7 +138,7 @@ class AggStats(object):
         lat_dim = lat.shape[0]
         lon_dim = lon.shape[0]
         print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
-        
+
         # Find name of variable and change to netcdf name
         vname = self.hist_list[0].split("_")[4]
         if vname == "pr":
@@ -159,11 +159,11 @@ class AggStats(object):
 
             # Find historic file that matches future file
             hist_file = [s for s in self.hist_list if mod_name in s][0]
-            
+
             # Open datasets
             fut_data = Dataset(fut_file)
             hist_data = Dataset(hist_file)
-            
+
             # Find average over time span
             fut_avg = fut_data.variables[netname][:].mean(axis=0)
             hist_avg = hist_data.variables[netname][:].mean(axis=0)
@@ -186,3 +186,65 @@ class AggStats(object):
         return diff_arr
 
 
+    def mod_diff_mon():
+        """
+        Find the projected monthly change for each model in list. Returns a list
+        of the model names and an array of the results.
+
+        save (bool) -- do you want to save numpy array?
+        dpath (str) -- destination directory for saving file
+        """
+
+        # Set dimensions of output
+        mod_dim = len(self.hist_list)
+        lat, lon = self.get_latlon()
+        lat_dim = lat.shape[0]
+        lon_dim = lon.shape[0]
+        time_dim =  12  # number of months
+        print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
+
+        # Find name of variable and change to netcdf name
+        vname = self.hist_list[0].split("_")[4]
+        if vname == "pr":
+            netname = "precipitation"
+        elif vname == "tasmin" or vname == "tasmax":
+            netname = "air_temperature"
+
+        # Find end year and scenario
+        end_yr = self.fut_list[0].split("_")[9]
+        rcp = self.fut_list[0].split("_")[6]
+
+        # For each model in the list find the projected change
+        diff_arr = np.zeros((mod_dim, time_dim, lat_dim, lon_dim))
+        counter = 0
+        for fut_file in self.fut_list:
+            # Get name of the model
+            mod_name = fut_file.split("_")[5]
+
+            # Find historic file that matches future file
+            hist_file = [s for s in self.hist_list if mod_name in s][0]
+
+            # Open datasets
+            fut_data = Dataset(fut_file)
+            hist_data = Dataset(hist_file)
+
+            # Find average over time span
+            fut_avg = fut_data.variables[netname][:].mean(axis=0)
+            hist_avg = hist_data.variables[netname][:].mean(axis=0)
+            diff = fut_avg - hist_avg
+
+            # Add diff to numpy array
+            diff_arr[counter, :, :] = diff
+
+            # Complete loop
+            counter += 1
+            fut_data.close()
+            hist_data.close()
+            print("Done processing " + mod_name)
+
+        if save:
+            print("Saving file...")
+            name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
+            np.save(name, diff_arr)
+        print("Processing is complete. Thanks for your patience.")
+        return diff_arr
