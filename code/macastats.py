@@ -10,7 +10,7 @@ from rasterstats import zonal_stats
 from netCDF4 import Dataset
 from affine import Affine
 import json
-
+import pandas as pd
 
 def zstats(gis_path, net_data, cd_list=True):
     """
@@ -189,17 +189,22 @@ class AggStats(object):
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
-    def timestamp(self):
+    def timestamp(self, historical=True):
         """
         Returns datetime list from time variable in netcdf file.
         """
         days_offset = -25567
         sec_day = 24*60*60
-        data = Dataset(self.fut_list[0])
+        if historical:
+            data = Dataset(self.hist_list[0])
+        else:
+            data = Dataset(self.fut_list[0])
         t = data.variables['time'][:]
-
         data.close()
-    
+        x = pd.to_datetime(t + days_offset, unit='D')
+        return x
+
+
     def mod_diff_mon(self, save=False, dpath="./"):
         """
         Find the projected monthly change for each model in list. Returns a list
@@ -241,14 +246,24 @@ class AggStats(object):
             # Open datasets
             fut_data = Dataset(fut_file)
             hist_data = Dataset(hist_file)
+            fut_var = fut_data.variables[netname][:]
+            hist_var = hist_data.variables[netname][:]
 
-            # Find average over time span
-            fut_avg = fut_data.variables[netname][:].mean(axis=0)
-            hist_avg = hist_data.variables[netname][:].mean(axis=0)
-            diff = fut_avg - hist_avg
+            # Find average for each month
+            fut_ts = self.timestamp(historical=False)
+            hist_ts = self.timestamp(historical=True)
+            fut_mth = np.zeros((time_dim, lat_dim, lon_dim))
+            hist_mth = np.zeros((time_dim, lat_dim, lon_dim))
+            for m in range(time_dim):
+                fut_hold = fut_var[fut_ts.month==m+1, :, :].mean(axis=0)
+                fut_mth[m, :, :] = fut_hold
+                hist_hold = hist_var[hist_ts.month==m+1, :, :].mean(axis=0)
+                hist_mth[m, :, :] = hist_hold
+
+            diff = fut_mth - hist_mth
 
             # Add diff to numpy array
-            diff_arr[counter, :, :] = diff
+            diff_arr[counter, :, :, :] = diff
 
             # Complete loop
             counter += 1
@@ -258,7 +273,7 @@ class AggStats(object):
 
         if save:
             print("Saving file...")
-            name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
+            name = dpath + "model_diffs_mth_" + vname + "_" + rcp + "_" + end_yr
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
