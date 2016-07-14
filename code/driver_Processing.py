@@ -4,14 +4,14 @@ import macaplots as mplt
 import numpy as np
 
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
 gis_path = "/home/nick/workspace/shapefiles/"
 save_path = None
 
 ######## Annual Ensemble Differences ##########
-mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = "rcp85"
 
 # Create list of files for historical data
@@ -33,3 +33,7 @@ mod_delta_tmax = agstats_tmax.mod_diff_ann(save=False, dpath=save_path)
 ######## Monthly Ensemble Differences ###########
 aggstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
 mod_delta_tmax_mth = aggstats_tmax.mod_diff_mon(save=False)
+aggstats_tmin = ms.AggStats(hist_tmax, fut_tmax)
+mod_delta_tmin_mth = aggstats_tmax.mod_diff_mon(save=False)
+aggstats_pr = ms.AggStats(hist_tmax, fut_tmax)
+mod_delta_pr_mth = aggstats_tmax.mod_diff_mon(save=False)

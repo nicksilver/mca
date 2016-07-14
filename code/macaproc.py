@@ -147,7 +147,7 @@ def select_mod(fn_list, var, mod=None, yr=None):
         yr_list = var_list
 
     out_list = []
-    
+
     if mod != None:
         if type(mod) != list:
             raise Exception("'mod' parameter must be a list")
