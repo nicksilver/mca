@@ -9,7 +9,7 @@ data_path = "/data/maca_mt/"
 gis_path = "/home/nick/workspace/shapefiles/"
 save_path = None
 
-######## Annual Ensemble Differences ###########
+######## Annual Ensemble Differences ##########
 mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = "rcp45"
 
