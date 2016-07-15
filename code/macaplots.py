@@ -176,7 +176,7 @@ class clim_divs(object):
         coords_clean = [div[0] for div in coords]
         self.xs = [[x for x, y in n] for n in coords_clean]
         self.ys = [[y for x, y in n] for n in coords_clean]
-        
+
 
     def temp_plot(self, stats_dict, title="", savepath=None):
         """
@@ -214,11 +214,11 @@ class clim_divs(object):
             ("Difference", "@difference"),
             ("(Long, Lat)", "($x, $y)")
         ]
-        
+
         if savepath is not None:
             output_file(savepath)
         show(p)
-    
+
     def prec_plot(self, stats_dict, title="", savepath=None):
         """
         Returns change in precip variable for each climate division.
@@ -233,6 +233,6 @@ class clim_divs(object):
 
 def clim_div_temp_grid():
     """
-    Returns change in temperature by season and climate division.
+    Returns change in temperature by month and climate division.
     """
     pass

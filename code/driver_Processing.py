@@ -6,11 +6,13 @@ import numpy as np
 # data_path = "/data/a_mt/"
 # data_path = "/home/nick/workspace/data/"
 data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+data_path = "/data/maca_mt/"
 gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+gis_path = "/home/nick/workspace/shapefiles/"
 save_path = None
 
 ######## Annual Ensemble Differences ##########
-mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = "rcp85"
 
 # Create list of files for historical data
