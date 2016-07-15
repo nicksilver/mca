@@ -178,18 +178,19 @@ class clim_divs(object):
         self.ys = [[y for x, y in n] for n in coords_clean]
 
 
-    def temp_plot(self, stats_dict, title="", savepath=None):
+    def temp_plot(self, stats_df, title="", savepath=None, stat='mean'):
         """
         Returns change in temp. variable for each climate division.
 
         clim_div_shp - climate division shapefile (includes '.shp')
-        stats_dict - results from macastats.zstats()
+        stats_df - results from macastats.zstats()
         title - main figure title
         savepath - add path to save html file
+        stat - stat to include from macastats.zstats() output
         """
 
-        values = [val['mean'] for val in stats_dict]
-        cd_names = [val['climdiv'] for val in stats_dict]
+        values = list(stats_df[stat])
+        cd_names = list(stats_df['climdiv'])
         colors = [Oranges8[int(value)] for value in values]
 
         source = ColumnDataSource(data=dict(

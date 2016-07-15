@@ -37,7 +37,7 @@ mod_delta_tavg = ms.temp_average(mod_delta_tmin, mod_delta_tmax,
 
 # Calculate clim div stats
 shpfile = gis_path + "MT_CLIM_DIVISIONS"
-tavg_zstats = ms.zstats(shpfile, mod_delta_tavg.mean(axis=0), cd_list=True)
+tavg_zstats = ms.zstats(shpfile, mod_delta_tavg.mean(axis=0))
 
 
 # Plot

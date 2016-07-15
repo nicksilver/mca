@@ -11,8 +11,20 @@ from netCDF4 import Dataset
 from affine import Affine
 import json
 import pandas as pd
+import collections
 
-def zstats(gis_path, net_data, cd_list=True):
+def invert_dict(dic):
+    """
+    Converts list of dictionaries to dictionary of lists.
+    """
+    result = collections.defaultdict(list)
+    for d in dic:
+        for k, v in d.items():
+            result[k].append(v)
+    return result
+
+
+def zstats(gis_path, net_data):
     """
     Returns zonal stats of netcdf raster data from shapefile for a specified
     year.
@@ -21,11 +33,17 @@ def zstats(gis_path, net_data, cd_list=True):
 
     :param net_data: numpy array of data
 
-    :param cd_list: should I include the names of the climate divisions with the
-    output?
-
     :return: the grid-cell count, min, max, and mean of shapefile object
     """
+
+    # Get names of climate divisions from json file
+    with open(gis_path + ".json") as jfile:
+        jdata = json.load(jfile)
+
+        cd_names = []
+        for cd in jdata['objects']['MT_CLIM_DIVISIONS']['geometries']:
+            cd_name = cd['properties']['CLIMDIV']
+            cd_names.append(cd_name)
 
     # Affine transformation information:
     # a = width of a pixel
@@ -35,6 +53,7 @@ def zstats(gis_path, net_data, cd_list=True):
     # e = height of a pixel (typically negative)
     # f = y-coordinate of the of the upper-left corner of the upper-left pixel
 
+    # These were taken from the MACA netcdf file
     a = 0.0417
     b = 0
     c = -116.6056 - a
@@ -43,22 +62,30 @@ def zstats(gis_path, net_data, cd_list=True):
     f = 49.3127 - e
     aff = Affine(a, b, c, d, e, f)
 
-    # Get zone stats for
-    zs = zonal_stats(gis_path + ".shp", net_data, affine=aff)
+    # Get zone stats for climate divisions
+    stats=['min', 'max', 'mean', 'median', 'count', 'std']
 
-    # Combine clim div names with zone stats
-    if cd_list:
-        # Get names of climate divisions from json file
-        with open(gis_path + ".json") as jfile:
-            jdata = json.load(jfile)
+    if len(net_data.shape)==3:
+        ndata = net_data[0, :, :]
+    else:
+        ndata = net_data
 
-        cd_names = []
-        for cd in jdata['objects']['MT_CLIM_DIVISIONS']['geometries']:
-            cd_name = cd['properties']['CLIMDIV']
-            cd_names.append(cd_name)
+    zs = zonal_stats(gis_path + ".shp", ndata, affine=aff,
+                     stats=stats)
+    zs = pd.DataFrame(invert_dict(zs))
+    zs['climdiv'] = cd_names
 
-        for i in range(len(zs)):
-            zs[i]['climdiv'] = cd_names[i]
+    if len(net_data.shape)==3:
+        mth = np.repeat(1, len(zs))
+        zs['month'] = mth
+        for m in range(net_data.shape[0]-1):
+            tzs = zonal_stats(gis_path+'.shp', net_data[m+1, :, :], affine=aff,
+                              stats=stats)
+            tzs = pd.DataFrame(invert_dict(tzs))
+            tzs['climdiv'] = cd_names
+            tzs['month'] = mth + m + 1
+            zs = zs.append(tzs)
+
     return zs
 
 
