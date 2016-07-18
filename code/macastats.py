@@ -120,15 +120,42 @@ def temp_average(tmin, tmax, save=False, dpath="./"):
     return tavg
 
 
-def find_range(data, mod_list):
+def zstats_range(data, gis_path, mod_list, stat='median'):
     """
     Finds the minimum and maximum projection within ensemble and the model name for each.
     :param data: Array of differences
+    :param gis_path: Path to shapefile to get zonal_stats
     :param mod_list: List of the names of the model in order of data[0, :, :, :]
+    :param stat: Statistic to use for range from data
     :return: Returns tuplet of (min, max, min_name, max_name)
     """
+    # Process zonal stats for each model
+    df = pd.DataFrame()
     for m in range(data.shape[0]):
-        pass
+        zs = zstats(gis_path, data[m, :, :, :])
+        mn = np.repeat(mod_list[m], len(zs))
+        zs['model'] = mn
+        df = df.append(zs)
+        print "I am done processing zonal stats for " + mod_list[m]
+
+    # Find min and max for each climdiv and month
+    print "Now I am going to find the min and max..."
+    dfs = pd.DataFrame()
+    for m in range(1, 13):
+        for cd in range(2401, 2408):
+            cdm = df[[stat, 'model']][(df['climdiv'] == cd) & (df['month']==m)]
+            cdm.index = range(len(cdm))
+            cdmax = cdm.iloc[cdm[stat].idxmax()]
+            cdmin = cdm.iloc[cdm[stat].idxmin()]
+            temp_df = pd.DataFrame()
+            temp_df['climdiv'] = [cd]
+            temp_df['month'] = [m]
+            temp_df['max'] = [cdmax[stat]]
+            temp_df['model_max'] = [cdmax['model']]
+            temp_df['min'] = [cdmin[stat]]
+            temp_df['model_min'] = [cdmin['model']]
+            dfs = dfs.append(temp_df)
+    return dfs
 
 
 class AggStats(object):
@@ -226,6 +253,7 @@ class AggStats(object):
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
+
 
     def timestamp(self, historical=True):
         """

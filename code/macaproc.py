@@ -8,6 +8,7 @@ import numpy as np
 from netcdftime import utime
 from osgeo import gdal, ogr
 import glob
+import pickle
 
 
 def find_nearest(array, val):
@@ -23,6 +24,11 @@ def find_nearest(array, val):
 
     idx = np.abs(array - val).argmin()
     return idx
+
+
+def load_pickle(ppath):
+    p = pickle.load(open(ppath, 'rb'))
+    return p
 
 
 def clip_data(data, var, bottom, top, right, left):

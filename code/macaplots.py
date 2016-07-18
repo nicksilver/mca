@@ -232,6 +232,7 @@ class clim_divs(object):
         """
         pass
 
+
 def force_range(data, maxi):
     """
     Returns data that spans the range from 0 to maxi
@@ -242,9 +243,15 @@ def force_range(data, maxi):
     return list(nd.astype(int))
 
 
-def clim_div_temp_grid(stats_df, stat='mean', title=''):
+def clim_div_temp_grid(stats_df, stat='median', title='', r_data=None,
+                       save_path="./misc.html"):
     """
-    Returns change in temperature by month and climate division.
+    Plots change in temperature by month and climate division.
+    stats_df - dataframe with zonal stats
+    stat - column in stats_df to use as values
+    title - title for plot
+    r_data - dataframe with min and max of zonal stats
+    save_path - where do you want to save the html file?
     """
     mth_samp = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
                 "Oct", "Nov", "Dec"]
@@ -260,12 +267,16 @@ def clim_div_temp_grid(stats_df, stat='mean', title=''):
     months = [mth_samp[mth-1] for mth in stats_df['month']]
     climdivs = [cd_samp[cd - 2401] for cd in stats_df['climdiv']]
 
-    output_file('temp_grid.html', title="MT Clim Div Temperature")
+    output_file(save_path, title="MT Clim Div Temperature")
 
     source = ColumnDataSource(data=dict(
             climdiv=climdivs,
             month=months,
-            values=stats_df[stat],
+            value=stats_df[stat],
+            min_val=r_data['min'],
+            min_mod=r_data['model_min'],
+            max_val=r_data['max'],
+            max_mod=r_data['model_max'],
             color=colors)
     )
 
@@ -285,9 +296,19 @@ def clim_div_temp_grid(stats_df, stat='mean', title=''):
     p.rect("month", "climdiv", 1, 1, source=source, color="color",
            line_color='black')
 
-    p.select_one(HoverTool).tooltips = [
-        ('Month', '@month'),
-        ('Climate Division', '@climdiv'),
-        ('Difference', '@values'),
-    ]
+    if r_data is None:
+        p.select_one(HoverTool).tooltips = [
+            ('Month', '@month'),
+            ('Climate Division', '@climdiv'),
+            ('Ensemble Median', '@value')
+        ]
+    else:
+        p.select_one(HoverTool).tooltips = [
+            ('Month', '@month'),
+            ('Climate Division', '@climdiv'),
+            ('Ensemble Median', '@value'),
+            ('(Ensemble Min., Model)', '(@min_val, @min_mod)'),
+            ('(Ensemble Max., Model)', '(@max_val, @max_mod)')
+        ]
+
     show(p)
