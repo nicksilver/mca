@@ -4,6 +4,7 @@ from bokeh.plotting import figure, show, output_file, ColumnDataSource
 from bokeh.models import HoverTool
 from bokeh.palettes import Oranges8
 import fiona
+from math import pi
 
 
 def mod_diff_comp(precip1, temp1, leg_lab1="RCP 4.5",
@@ -231,9 +232,62 @@ class clim_divs(object):
         """
         pass
 
+def force_range(data, maxi):
+    """
+    Returns data that spans the range from 0 to maxi
+    maxi -- maximum value of the range
+    """
+    fact = np.float64(maxi)/(max(data - min(data)))
+    nd = fact*(data-min(data))
+    return list(nd.astype(int))
 
-def clim_div_temp_grid():
+
+def clim_div_temp_grid(stats_df, stat='mean', title=''):
     """
     Returns change in temperature by month and climate division.
     """
-    pass
+    mth_samp = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+                "Oct", "Nov", "Dec"]
+
+    col_samp = ["#75968f", "#a5bab7", "#c9d9d3", "#e2e2e2", "#dfccce",
+                "#ddb7b1", "#cc7878", "#933b41", "#550b1d"]
+
+    cd_samp = ["N West", "S West", "N Central", "Central", "S Central", "N East",
+                "S East"]
+
+    int_vals = force_range(stats_df[stat], 8)
+    colors = [col_samp[val] for val in int_vals]
+    months = [mth_samp[mth-1] for mth in stats_df['month']]
+    climdivs = [cd_samp[cd - 2401] for cd in stats_df['climdiv']]
+
+    output_file('temp_grid.html', title="MT Clim Div Temperature")
+
+    source = ColumnDataSource(data=dict(
+            climdiv=climdivs,
+            month=months,
+            values=stats_df[stat],
+            color=colors)
+    )
+
+    TOOLS = "hover,save,pan,box_zoom,wheel_zoom"
+    p = figure(title=title, x_range=mth_samp, y_range=cd_samp,
+               x_axis_location='above', plot_width=900, plot_height=400,
+               tools=TOOLS)
+
+    p.grid.grid_line_color = None
+    p.axis.axis_line_color = None
+    p.axis.major_tick_line_color = None
+    p.axis.minor_tick_line_color = None
+    p.axis.major_label_text_font_size = "15pt"
+    p.axis.major_label_standoff = 0
+    p.xaxis.major_label_orientation = pi/3
+
+    p.rect("month", "climdiv", 1, 1, source=source, color="color",
+           line_color='black')
+
+    p.select_one(HoverTool).tooltips = [
+        ('Month', '@month'),
+        ('Climate Division', '@climdiv'),
+        ('Difference', '@values'),
+    ]
+    show(p)

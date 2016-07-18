@@ -120,6 +120,17 @@ def temp_average(tmin, tmax, save=False, dpath="./"):
     return tavg
 
 
+def find_range(data, mod_list):
+    """
+    Finds the minimum and maximum projection within ensemble and the model name for each.
+    :param data: Array of differences
+    :param mod_list: List of the names of the model in order of data[0, :, :, :]
+    :return: Returns tuplet of (min, max, min_name, max_name)
+    """
+    for m in range(data.shape[0]):
+        pass
+
+
 class AggStats(object):
     """
     This class will take a list of file names and aggregate them to compute
