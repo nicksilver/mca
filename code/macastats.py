@@ -105,18 +105,20 @@ def clim_div_names(json_path):
     return cd_names
 
 
-def temp_average(tmin, tmax, save=False, dpath="./"):
+def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
     """
     Calculates averages of tmin and tmax to get tavg
-    :param tmin: numpy array of tmin values from mod_diff()
-    :param tmax: numpy array of tmax values from mod_diff()
+    :param tmin: path to numpy array of tmin values from mod_diff()
+    :param tmax: path to numpy array of tmax values from mod_diff()
     :param save: boolean for whether to save
     :param dpath: directory path for saving
     :return: numpy array of average temperature.
     """
+    tmin = np.load(tmin)
+    tmax = np.load(tmax)
     tavg = np.mean((tmin, tmax), axis=0)
     if save:
-        np.save(dpath + "model_diffs_tavg", tavg)
+        np.save(dpath, tavg)
     return tavg
 
 

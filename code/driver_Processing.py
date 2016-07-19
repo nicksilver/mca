@@ -34,9 +34,14 @@ fut_pr = mp.select_mod(fut_rcp, var='pr', mod=mod_list, yr='2070_2099')
 # mod_delta_pr = agstats_pr.mod_diff_ann(save=False, dpath=save_path)
 
 ######## Monthly Ensemble Differences ###########
+
 aggstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
 mod_delta_tmax_mth = aggstats_tmax.mod_diff_mon(save=True, dpath=save_path)
 aggstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
 mod_delta_tmin_mth = aggstats_tmin.mod_diff_mon(save=True, dpath=save_path)
 aggstats_pr = ms.AggStats(hist_pr, fut_pr)
 mod_delta_pr_mth = aggstats_pr.mod_diff_mon(save=True, dpath=save_path)
+tmin = save_path+"model_diffs_mth_tasmin_rcp85_2069.npy"
+tmax = save_path+"model_diffs_mth_tasmax_rcp85_2069.npy"
+tavg = save_path+"model_diffs_mth_tavg_rcp85_2069.npy"
+temp_avg = ms.temp_average(tmin, tmax, save=True, dpath=tavg)
