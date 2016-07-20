@@ -345,3 +345,5 @@ class AggStats(object):
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
+
+#TODO when processing precipitation use accumulated, not average

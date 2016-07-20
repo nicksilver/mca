@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from bokeh.plotting import figure, show, output_file, ColumnDataSource
+from bokeh.layouts import gridplot
 from bokeh.models import HoverTool
-from bokeh.palettes import Oranges8
+from bokeh.palettes import Oranges8, BrBG8
 import fiona
 from math import pi
 
@@ -233,18 +234,57 @@ class clim_divs(object):
         pass
 
 
-def force_range(data, maxi):
+def zero_range(data, maxi):
     """
     Returns data that spans the range from 0 to maxi
-    maxi -- maximum value of the range
+    maxi - maximum value of the range
     """
     fact = np.float64(maxi)/(max(data - min(data)))
     nd = fact*(data-min(data))
     return list(nd.astype(int))
 
 
-def clim_div_temp_grid(stats_df, stat='median', title='', r_data=None,
-                       save_path="./misc.html"):
+def find_nearest(array, val):
+    """
+    Function to find index of nearest grid-cell in array.
+    """
+
+    idx = np.abs(array - val).argmin()
+    return idx
+
+
+def const_range(data, breaks=8):
+    """
+    Returns int values that are on a constant scale
+    breaks - number of integers to be assigned
+    """
+    high = data.abs().max()
+    r = np.linspace(-high, high, breaks)
+    nd = []
+    for val in data:
+        nd.append(find_nearest(r, val))
+    return nd
+
+
+def add_colorbar(palette, low, high):
+    """
+    Returns colorbar legend for bokeh plot
+    palette - list of colors
+    low - low data value
+    hight - high data value
+    """
+    y = np.linspace(low, high, len(palette))
+    dy = y[1] - y[0]
+    legend = figure(tools="", x_range=[0, 1], y_range=[low-0.5*dy, high+0.5*dy],
+                    plot_width=100, plot_height=400, y_axis_location='right')
+    legend.toolbar_location = None
+    legend.xaxis.visible = None
+    legend.rect(x=0.5, y=y, color=palette, width=1, height=dy)
+    return legend
+
+
+def clim_div_grid(stats_df, stat='median', title='', r_data=None,
+                  save_path="./misc.html", palette=Oranges8, var='temp'):
     """
     Plots change in temperature by month and climate division.
     stats_df - dataframe with zonal stats
@@ -256,13 +296,20 @@ def clim_div_temp_grid(stats_df, stat='median', title='', r_data=None,
     mth_samp = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
                 "Oct", "Nov", "Dec"]
 
-    col_samp = ["#75968f", "#a5bab7", "#c9d9d3", "#e2e2e2", "#dfccce",
-                "#ddb7b1", "#cc7878", "#933b41", "#550b1d"]
-
     cd_samp = ["N West", "S West", "N Central", "Central", "S Central", "N East",
                 "S East"]
 
-    int_vals = force_range(stats_df[stat], 8)
+    if var == 'temp':
+        col_samp = Oranges8
+        int_vals = zero_range(stats_df[stat], 7)
+        legend = add_colorbar(col_samp, stats_df[stat].min(), stats_df[stat].max())
+    elif var == 'precip':
+        col_samp = BrBG8[::-1]
+        int_vals = const_range(stats_df[stat], 7)
+        legend = add_colorbar(col_samp, -stats_df[stat].abs().max(),
+                              stats_df[stat].abs().max())
+
+
     colors = [col_samp[val] for val in int_vals]
     months = [mth_samp[mth-1] for mth in stats_df['month']]
     climdivs = [cd_samp[cd - 2401] for cd in stats_df['climdiv']]
@@ -311,4 +358,7 @@ def clim_div_temp_grid(stats_df, stat='median', title='', r_data=None,
             ('(Ensemble Max., Model)', '(@max_val, @max_mod)')
         ]
 
-    show(p)
+    show(gridplot(p, legend, ncols=2))
+
+
+
