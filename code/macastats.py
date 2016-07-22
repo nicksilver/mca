@@ -122,14 +122,16 @@ def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
     return tavg
 
 
-def zstats_range(data, gis_path, mod_list, stat='median'):
+def zstats_range(data, gis_path, zs_data, mod_list, stat='median'):
     """
     Finds the minimum and maximum projection within ensemble and the model name for each.
+    It also finds the percent agreement of the direction of change with the median.
     :param data: Array of differences
     :param gis_path: Path to shapefile to get zonal_stats
+    :param zs_data: Data returned from zstats()
     :param mod_list: List of the names of the model in order of data[0, :, :, :]
     :param stat: Statistic to use for range from data
-    :return: Returns tuplet of (min, max, min_name, max_name)
+    :return: Returns dataframe of min, min_model, max, max_name, % agreement
     """
     # Process zonal stats for each model
     df = pd.DataFrame()
@@ -142,14 +144,31 @@ def zstats_range(data, gis_path, mod_list, stat='median'):
 
     # Find min and max for each climdiv and month
     print "Now I am going to find the min and max..."
+
     dfs = pd.DataFrame()
     for m in range(1, 13):
         for cd in range(2401, 2408):
-            cdm = df[[stat, 'model']][(df['climdiv'] == cd) & (df['month']==m)]
+            cdm = df[[stat, 'model']][(df['climdiv'] == cd) & (df['month'] == m)]
+
+            # Is the median ensemble value positive
+            med_bool = (zs_data[stat][(zs_data['climdiv'] == cd)
+                                      & (zs_data['month'] == m)] > 0)[0]
+
+            # Is the current model median value positive
+            cdm_bool = (cdm[stat] > 0)
+
+            # Record if the signs are alike
+            agr_bool = (med_bool == list(cdm_bool))
+            perc_agree = 100 * agr_bool.sum()/float(len(agr_bool))
+
+            # Find index of min and max models
             cdm.index = range(len(cdm))
             cdmax = cdm.iloc[cdm[stat].idxmax()]
             cdmin = cdm.iloc[cdm[stat].idxmin()]
+
+            # Add tp dataframe
             temp_df = pd.DataFrame()
+            temp_df['perc_agree'] = [perc_agree]
             temp_df['climdiv'] = [cd]
             temp_df['month'] = [m]
             temp_df['max'] = [cdmax[stat]]
@@ -346,4 +365,7 @@ class AggStats(object):
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
+
+
 #TODO when processing precipitation use accumulated, not average
+#TODO how many models agree with direction of change?

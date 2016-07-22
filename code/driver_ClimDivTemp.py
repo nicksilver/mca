@@ -6,7 +6,8 @@ import numpy as np
 
 # data_path = "/data/maca_mt/"
 gis_path = "/home/nick/workspace/shapefiles/"
-data_path = "/home/nick/workspace/data/"
+# data_path = "/home/nick/workspace/data/"
+data_path = "/home/nick/MEGA/workspace/mca/data/model_diffs/annually/"
 save_path = None
 
 # Load data
