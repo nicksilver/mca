@@ -324,6 +324,7 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None,
             min_mod=r_data['model_min'],
             max_val=r_data['max'],
             max_mod=r_data['model_max'],
+            perc_agree=r_data['perc_agree'],
             color=colors)
     )
 
@@ -355,7 +356,8 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None,
             ('Climate Division', '@climdiv'),
             ('Ensemble Median', '@value'),
             ('(Ensemble Min., Model)', '(@min_val, @min_mod)'),
-            ('(Ensemble Max., Model)', '(@max_val, @max_mod)')
+            ('(Ensemble Max., Model)', '(@max_val, @max_mod)'),
+            ('Model Agreement', '@perc_agree %')
         ]
 
     show(gridplot(p, legend, ncols=2))

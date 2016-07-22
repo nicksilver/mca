@@ -151,8 +151,8 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median'):
             cdm = df[[stat, 'model']][(df['climdiv'] == cd) & (df['month'] == m)]
 
             # Is the median ensemble value positive
-            med_bool = (zs_data[stat][(zs_data['climdiv'] == cd)
-                                      & (zs_data['month'] == m)] > 0)[0]
+            med_bool = list(zs_data[stat][(zs_data['climdiv'] == cd) &
+                                      (zs_data['month'] == m)] > 0)[0]
 
             # Is the current model median value positive
             cdm_bool = (cdm[stat] > 0)
