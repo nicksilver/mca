@@ -3,11 +3,11 @@ import macastats as ms
 import macaplots as mplt
 import numpy as np
 
-data_path = "/data/maca_mt/"
+# data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-gis_path = "/home/nick/workspace/shapefiles/"
+data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+# gis_path = "/home/nick/workspace/shapefiles/"
 save_path = "/home/nick/workspace/data/monthly/"
 
 mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
@@ -30,18 +30,17 @@ fut_pr = mp.select_mod(fut_rcp, var='pr', mod=mod_list, yr='2070_2099')
 # mod_delta_tmin = agstats_tmin.mod_diff_ann(save=False, dpath=save_path)
 # agstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
 # mod_delta_tmax = agstats_tmax.mod_diff_ann(save=False, dpath=save_path)
-# agstats_pr = ms.AggStats(hist_pr, fut_pr)
-# mod_delta_pr = agstats_pr.mod_diff_ann(save=False, dpath=save_path)
+agstats_pr = ms.AggStats(hist_pr, fut_pr)
+mod_delta_pr = agstats_pr.mod_diff_ann(save=False)
 
 ######## Monthly Ensemble Differences ###########
-
-aggstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
-mod_delta_tmax_mth = aggstats_tmax.mod_diff_mon(save=True, dpath=save_path)
-aggstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
-mod_delta_tmin_mth = aggstats_tmin.mod_diff_mon(save=True, dpath=save_path)
-aggstats_pr = ms.AggStats(hist_pr, fut_pr)
-mod_delta_pr_mth = aggstats_pr.mod_diff_mon(save=True, dpath=save_path)
-tmin = save_path+"model_diffs_mth_tasmin_rcp85_2069.npy"
-tmax = save_path+"model_diffs_mth_tasmax_rcp85_2069.npy"
-tavg = save_path+"model_diffs_mth_tavg_rcp85_2069.npy"
-temp_avg = ms.temp_average(tmin, tmax, save=True, dpath=tavg)
+# aggstats_tmax = ms.AggStats(hist_tmax, fut_tmax)
+# mod_delta_tmax_mth = aggstats_tmax.mod_diff_mon(save=True, dpath=save_path)
+# aggstats_tmin = ms.AggStats(hist_tmin, fut_tmin)
+# mod_delta_tmin_mth = aggstats_tmin.mod_diff_mon(save=True, dpath=save_path)
+# aggstats_pr = ms.AggStats(hist_pr, fut_pr)
+# mod_delta_pr_mth = aggstats_pr.mod_diff_mon(save=True, dpath=save_path)
+# tmin = save_path+"model_diffs_mth_tasmin_rcp85_2069.npy"
+# tmax = save_path+"model_diffs_mth_tasmax_rcp85_2069.npy"
+# tavg = save_path+"model_diffs_mth_tavg_rcp85_2069.npy"
+# temp_avg = ms.temp_average(tmin, tmax, save=True, dpath=tavg)

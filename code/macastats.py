@@ -281,7 +281,6 @@ class AggStats(object):
         Returns datetime list from time variable in netcdf file.
         """
         days_offset = -25567
-        sec_day = 24*60*60
         if historical:
             data = Dataset(self.hist_list[0])
         else:
@@ -290,6 +289,16 @@ class AggStats(object):
         data.close()
         x = pd.to_datetime(t + days_offset, unit='D')
         return x
+
+
+    def agg_time(self, filename, freq='annual'):
+        """
+        Returns numpy array aggregated to specified frequency and stat
+        """
+        ts_hist = self.timestamp(historical=True)
+        ts_fut = self.timestamp(historical=False)
+        return ts_hist
+
 
 
     def mod_diff_mon(self, save=False, dpath="./"):
@@ -306,7 +315,7 @@ class AggStats(object):
         lat, lon = self.get_latlon()
         lat_dim = lat.shape[0]
         lon_dim = lon.shape[0]
-        time_dim =  12  # number of months
+        time_dim = 12  # number of months
         print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
 
         # Find name of variable and change to netcdf name
@@ -342,9 +351,9 @@ class AggStats(object):
             fut_mth = np.zeros((time_dim, lat_dim, lon_dim))
             hist_mth = np.zeros((time_dim, lat_dim, lon_dim))
             for m in range(time_dim):
-                fut_hold = fut_var[fut_ts.month==m+1, :, :].mean(axis=0)
+                fut_hold = fut_var[fut_ts.month == m+1, :, :].mean(axis=0)
                 fut_mth[m, :, :] = fut_hold
-                hist_hold = hist_var[hist_ts.month==m+1, :, :].mean(axis=0)
+                hist_hold = hist_var[hist_ts.month == m+1, :, :].mean(axis=0)
                 hist_mth[m, :, :] = hist_hold
 
             diff = fut_mth - hist_mth
