@@ -213,6 +213,39 @@ class AggStats(object):
         return mod_list
 
 
+    def agg_time(self, data, freq='annual', historical=True, stat='sum'):
+        """
+        Returns numpy array aggregated to specified frequency and stat
+        """
+        ts = self.timestamp(historical=historical)
+        yrs_uni = np.unique(ts.year)
+        lat_dim = data.shape[1]
+        lon_dim = data.shape[2]
+        yr_dim = len(yrs_uni)
+        mth_dim = 12
+
+        if freq == 'monthly':
+            agg_data = np.zeros((mth_dim, lat_dim, lon_dim))
+            for m in range(mth_dim):
+                if stat == 'sum':
+                    hold = data[ts.month == m + 1, :, :].sum(axis=0)
+                elif stat == 'mean':
+                    hold = data[ts.month == m + 1, :, :].mean(axis=0)
+                agg_data[m, :, :] = hold/yr_dim
+
+        elif freq == 'annual':
+            agg_data = np.zeros((yr_dim, lat_dim, lon_dim))
+            counter = 0
+            for y in yrs_uni:
+                if stat == 'sum':
+                    hold = data[ts.year == y, :, :].sum(axis=0)
+                elif stat == 'mean':
+                    hold = data[ts.year == y, :, :].mean(axis=0)
+                agg_data[counter, :, :] = hold
+                counter += 1
+        return agg_data
+
+
     def mod_diff_ann(self, save=False, dpath="./"):
         """
         Find the projected annual change for each model in list. Returns a list
@@ -252,11 +285,22 @@ class AggStats(object):
 
             # Open datasets
             fut_data = Dataset(fut_file)
+            fut_var = fut_data.variables[netname][:]
             hist_data = Dataset(hist_file)
+            hist_var = hist_data.variables[netname][:]
 
-            # Find average over time span
-            fut_avg = fut_data.variables[netname][:].mean(axis=0)
-            hist_avg = hist_data.variables[netname][:].mean(axis=0)
+            # If temperature find annual average
+            if netname == 'air_temperature':
+                fut_avg = fut_var.mean(axis=0)
+                hist_avg = hist_var.mean(axis=0)
+
+            # If precipitation find annual sum
+            elif netname == 'precipitation':
+                fut_avg = self.agg_time(fut_var, freq='annual', historical=False, stat='sum')
+                fut_avg = fut_avg.mean(axis=0)  # average over all years
+                hist_avg = self.agg_time(hist_var, freq='annual', historical=True, stat='sum')
+                hist_avg = hist_avg.mean(axis=0)  # average over all years
+
             diff = fut_avg - hist_avg
 
             # Add diff to numpy array
@@ -290,14 +334,6 @@ class AggStats(object):
         x = pd.to_datetime(t + days_offset, unit='D')
         return x
 
-
-    def agg_time(self, filename, freq='annual'):
-        """
-        Returns numpy array aggregated to specified frequency and stat
-        """
-        ts_hist = self.timestamp(historical=True)
-        ts_fut = self.timestamp(historical=False)
-        return ts_hist
 
 
 
@@ -346,15 +382,22 @@ class AggStats(object):
             hist_var = hist_data.variables[netname][:]
 
             # Find average for each month
-            fut_ts = self.timestamp(historical=False)
-            hist_ts = self.timestamp(historical=True)
             fut_mth = np.zeros((time_dim, lat_dim, lon_dim))
             hist_mth = np.zeros((time_dim, lat_dim, lon_dim))
-            for m in range(time_dim):
-                fut_hold = fut_var[fut_ts.month == m+1, :, :].mean(axis=0)
-                fut_mth[m, :, :] = fut_hold
-                hist_hold = hist_var[hist_ts.month == m+1, :, :].mean(axis=0)
-                hist_mth[m, :, :] = hist_hold
+
+            # If temperature find the monthly average
+            if netname == 'air_temperature':
+                fut_mth = self.agg_time(fut_var, freq='monthly',
+                                        historical=False, stat='mean')
+                hist_mth = self.agg_time(hist_var, freq='monthly',
+                                         historical=True, stat='mean')
+
+            # If precipitation find the monthly sum
+            elif netname == 'precipitation':
+                fut_mth = self.agg_time(fut_var, freq='monthly',
+                                        historical=False, stat='sum')
+                hist_mth = self.agg_time(hist_var, freq='monthly',
+                                         historical=True, stat='sum')
 
             diff = fut_mth - hist_mth
 
@@ -373,8 +416,3 @@ class AggStats(object):
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
-
-
-
-#TODO when processing precipitation use accumulated, not average
-#TODO how many models agree with direction of change?
