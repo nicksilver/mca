@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from bokeh.plotting import figure, show, output_file, ColumnDataSource
+from bokeh.plotting import figure, show, save, output_file, ColumnDataSource
 from bokeh.layouts import gridplot
 from bokeh.models import HoverTool
 from bokeh.palettes import Oranges8, BrBG8
@@ -283,13 +283,15 @@ def add_colorbar(palette, low, high):
     return legend
 
 
-def clim_div_grid(stats_df, stat='median', title='', r_data=None,
-                  save_path="./misc.html", palette=Oranges8, var='temp'):
+def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
+                  save_path="./misc.html", var='temp'):
     """
     Plots change in temperature by month and climate division.
     stats_df - dataframe with zonal stats
     stat - column in stats_df to use as values
     title - title for plot
+    browser - should open plot in browser?
+    var - which variable are you plotting?
     r_data - dataframe with min and max of zonal stats
     save_path - where do you want to save the html file?
     """
@@ -300,21 +302,22 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None,
                 "S East"]
 
     if var == 'temp':
-        col_samp = Oranges8
+        col_samp = Oranges8[::-1]  # reverse the order
         int_vals = zero_range(stats_df[stat], 7)
         legend = add_colorbar(col_samp, stats_df[stat].min(), stats_df[stat].max())
+        webtitle = 'MT Change in Monthly Temp.'
     elif var == 'precip':
-        col_samp = BrBG8[::-1]
-        int_vals = const_range(stats_df[stat], 7)
+        col_samp = BrBG8[::-1]  # reverse the order
+        int_vals = const_range(stats_df[stat], 8)
         legend = add_colorbar(col_samp, -stats_df[stat].abs().max(),
                               stats_df[stat].abs().max())
-
+        webtitle = 'MT Change in Monthly Precip.'
 
     colors = [col_samp[val] for val in int_vals]
     months = [mth_samp[mth-1] for mth in stats_df['month']]
     climdivs = [cd_samp[cd - 2401] for cd in stats_df['climdiv']]
-
-    output_file(save_path, title="MT Clim Div Temperature")
+    
+    output_file(save_path, title=webtitle)
 
     source = ColumnDataSource(data=dict(
             climdiv=climdivs,
@@ -328,7 +331,7 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None,
             color=colors)
     )
 
-    TOOLS = "hover,save,pan,box_zoom,wheel_zoom"
+    TOOLS = "hover,save"
     p = figure(title=title, x_range=mth_samp, y_range=cd_samp,
                x_axis_location='above', plot_width=900, plot_height=400,
                tools=TOOLS)
@@ -360,7 +363,9 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None,
             ('Model Agreement', '@perc_agree %')
         ]
 
-    show(gridplot(p, legend, ncols=2))
-
+    if browser:
+        show(gridplot(p, legend, ncols=2))
+    else:
+        save(gridplot(p, legend, ncols=2))
 
 

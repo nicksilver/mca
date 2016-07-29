@@ -24,7 +24,7 @@ def invert_dict(dic):
     return result
 
 
-def zstats(gis_path, net_data):
+def zstats(gis_path, net_data, metric=True, precip=False):
     """
     Returns zonal stats of netcdf raster data from shapefile for a specified
     year.
@@ -32,6 +32,10 @@ def zstats(gis_path, net_data):
     :param gis_path: path to shapefile (str)
 
     :param net_data: numpy array of data
+
+    :param metric: should the data be in metric (mm and C) or US (in and F) units
+
+    :param precip: is the data precip?
 
     :return: the grid-cell count, min, max, and mean of shapefile object
     """
@@ -86,6 +90,22 @@ def zstats(gis_path, net_data):
             tzs['month'] = mth + m + 1
             zs = zs.append(tzs)
 
+    # Convert to inches
+    if precip and not metric:
+        zs[['max', 'min', 'mean', 'median', 'std']] = zs[['max',
+                                                          'min',
+                                                          'mean',
+                                                          'median',
+                                                          'std']]*0.0393701
+
+    # Convert to Fahrenheit
+    elif not precip and not metric:
+        zs[['max', 'min', 'mean', 'median', 'std']] = zs[['max',
+                                                          'min',
+                                                          'mean',
+                                                          'median',
+                                                          'std']]*1.8
+
     return zs
 
 
@@ -122,7 +142,8 @@ def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
     return tavg
 
 
-def zstats_range(data, gis_path, zs_data, mod_list, stat='median'):
+def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
+                 metric=True):
     """
     Finds the minimum and maximum projection within ensemble and the model name for each.
     It also finds the percent agreement of the direction of change with the median.
@@ -131,6 +152,8 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median'):
     :param zs_data: Data returned from zstats()
     :param mod_list: List of the names of the model in order of data[0, :, :, :]
     :param stat: Statistic to use for range from data
+    :param precip: Is the variable precipitation?
+    :param metric: Should we return values in metric (mm and C) or US (in. and F)
     :return: Returns dataframe of min, min_model, max, max_name, % agreement
     """
     # Process zonal stats for each model
@@ -176,6 +199,14 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median'):
             temp_df['min'] = [cdmin[stat]]
             temp_df['model_min'] = [cdmin['model']]
             dfs = dfs.append(temp_df)
+
+    # Convert to inches
+    if precip and not metric:
+        dfs[['max', 'min']] = dfs[['max', 'min']]*0.0393701
+
+    # Convert to Fahrenheit
+    elif not precip and not metric:
+        dfs[['max', 'min']] = dfs[['max', 'min']]*1.8
     return dfs
 
 
@@ -246,13 +277,15 @@ class AggStats(object):
         return agg_data
 
 
-    def mod_diff_ann(self, save=False, dpath="./"):
+    def mod_diff_ann(self, save=False, dpath="./", stat='mean', ctype='absolute'):
         """
         Find the projected annual change for each model in list. Returns a list
         of the model names and an array of the results.
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
+        stat (str) -- statistic across the time domain (i.e. mean or standard deviation)
+        ctype (str) -- absolute or percent change
         """
 
         # Set dimensions of output
@@ -289,19 +322,41 @@ class AggStats(object):
             hist_data = Dataset(hist_file)
             hist_var = hist_data.variables[netname][:]
 
-            # If temperature find annual average
+            # If temperature, find annual average
             if netname == 'air_temperature':
-                fut_avg = fut_var.mean(axis=0)
-                hist_avg = hist_var.mean(axis=0)
+                if stat == 'mean':
+                    fut_stat = fut_var.mean(axis=0)
+                    hist_stat = hist_var.mean(axis=0)
+                elif stat == 'std':
+                    fut_stat = fut_var.std(axis=0)
+                    hist_stat = hist_var.std(axis=0)
 
-            # If precipitation find annual sum
+            # If precipitation, find annual sum
             elif netname == 'precipitation':
-                fut_avg = self.agg_time(fut_var, freq='annual', historical=False, stat='sum')
-                fut_avg = fut_avg.mean(axis=0)  # average over all years
-                hist_avg = self.agg_time(hist_var, freq='annual', historical=True, stat='sum')
-                hist_avg = hist_avg.mean(axis=0)  # average over all years
+                fut = self.agg_time(fut_var, freq='annual',
+                                    historical=False, stat='sum')
+                if stat == 'mean':
+                    fut_stat = fut.mean(axis=0)  # average over all years
+                    name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
+                elif stat == 'std':
+                    fut_stat = fut.std(axis=0)  # average over all years
+                    name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
 
-            diff = fut_avg - hist_avg
+                hist = self.agg_time(hist_var, freq='annual',
+                                     historical=True, stat='sum')
+                if stat == 'mean':
+                    hist_stat = hist.mean(axis=0)  # average over all years
+                    name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
+                elif stat == 'std':
+                    hist_stat = hist.std(axis=0)  # average over all years
+                    name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
+
+            if ctype == 'absolute':
+                diff = fut_stat - hist_stat
+            elif ctype == 'percent' and netname == 'precipitation':
+                diff = (fut_stat - hist_stat)/hist_stat
+            elif ctype == 'percent' and netname == 'air_temperature':
+                raise ValueError("Please change ctype to absolute when calculating temp.")
 
             # Add diff to numpy array
             diff_arr[counter, :, :] = diff
@@ -314,7 +369,6 @@ class AggStats(object):
 
         if save:
             print("Saving file...")
-            name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
