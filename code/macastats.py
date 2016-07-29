@@ -327,9 +327,11 @@ class AggStats(object):
                 if stat == 'mean':
                     fut_stat = fut_var.mean(axis=0)
                     hist_stat = hist_var.mean(axis=0)
+                    name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
                 elif stat == 'std':
                     fut_stat = fut_var.std(axis=0)
                     hist_stat = hist_var.std(axis=0)
+                    name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
 
             # If precipitation, find annual sum
             elif netname == 'precipitation':
@@ -355,6 +357,7 @@ class AggStats(object):
                 diff = fut_stat - hist_stat
             elif ctype == 'percent' and netname == 'precipitation':
                 diff = (fut_stat - hist_stat)/hist_stat
+                name = dpath + "model_vars_perc_" + vname + "_" + rcp + "_" + end_yr
             elif ctype == 'percent' and netname == 'air_temperature':
                 raise ValueError("Please change ctype to absolute when calculating temp.")
 

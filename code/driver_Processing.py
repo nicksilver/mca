@@ -1,14 +1,12 @@
 import macaproc as mp
 import macastats as ms
-import macaplots as mplt
-import numpy as np
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-# gis_path = "/home/nick/workspace/shapefiles/"
-save_path = "/home/nick/workspace/data/monthly/"
+# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+gis_path = "/home/nick/workspace/shapefiles/"
+save_path = "/home/nick/workspace/data/annually/"
 
 mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = ["rcp45", "rcp85"]
@@ -20,8 +18,8 @@ hist_tmin = mp.select_mod(hist_rcp, var='tasmin', mod=mod_list)
 hist_tmax = mp.select_mod(hist_rcp, var='tasmax', mod=mod_list)
 hist_pr = mp.select_mod(hist_rcp, var='pr', mod=mod_list)
 
-rcp = rcp_scen[1]
-tr = time_range[1]
+# rcp = rcp_scen[1]
+# tr = time_range[1]
 for rcp in rcp_scen:
     for tr in time_range:
 
@@ -53,5 +51,6 @@ for rcp in rcp_scen:
 
         ######### Annual Ensemble Variability ############
         aggstats_pr = ms.AggStats(hist_pr, fut_pr)
-        var_pr = aggstats_pr.mod_diff_ann(save=True, stat='std', ctype='percent')
+        var_pr = aggstats_pr.mod_diff_ann(save=True, dpath=save_path,
+                                          stat='std', ctype='absolute')
 
