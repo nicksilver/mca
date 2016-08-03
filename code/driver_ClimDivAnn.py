@@ -3,10 +3,10 @@ import macaplots as mplt
 import numpy as np
 
 
-gis_path = "/home/nick/workspace/shapefiles/"
-# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-data_path = "/home/nick/workspace/data/annually/"
-# data_path = "/home/nick/MEGA/workspace/mca/data/model_diffs/annually/"
+# gis_path = "/home/nick/workspace/shapefiles/"
+gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+# data_path = "/home/nick/workspace/data/annually/"
+data_path = "/home/nick/MEGA/workspace/mca/data/model_diffs/annually/"
 # data_path = "./"
 save_path = None
 

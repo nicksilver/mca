@@ -23,7 +23,6 @@ def invert_dict(dic):
             result[k].append(v)
     return result
 
-
 def zstats(gis_path, net_data, metric=True, precip=False):
     """
     Returns zonal stats of netcdf raster data from shapefile for a specified
@@ -108,7 +107,6 @@ def zstats(gis_path, net_data, metric=True, precip=False):
 
     return zs
 
-
 def clim_div_names(json_path):
     """
     Returns a list of the climate division names to be used with zstats()
@@ -123,7 +121,6 @@ def clim_div_names(json_path):
         cd_names.append(cd_name)
 
     return cd_names
-
 
 def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
     """
@@ -141,6 +138,11 @@ def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
         np.save(dpath, tavg)
     return tavg
 
+def gdd(tmin, tmax, base):
+    """
+    Returns growing degree day from numpy arrays.
+    """
+    return (tmin + tmax)/2. - base
 
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
                  metric=True):
@@ -210,16 +212,14 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
     return dfs
 
 
-class AggStats(object):
+class MacaStats(object):
     """
-    This class will take a list of file names and aggregate them to compute
-    statistics (e.g. annual average of all models).
+    This is the base class containing generic functions used in all subclasses.
     """
 
     def __init__(self, hist_list, fut_list):
         self.hist_list = hist_list
         self.fut_list = fut_list
-
 
     def get_latlon(self):
         """
@@ -230,7 +230,6 @@ class AggStats(object):
         lon = data.variables['lon'][:]
         data.close()
         return lat, lon
-
 
     def mod_names(self):
         """
@@ -243,11 +242,17 @@ class AggStats(object):
             mod_list.append(mod_name)
         return mod_list
 
-
     def agg_time(self, data, freq='annual', historical=True, stat='sum'):
         """
         Returns numpy array aggregated to specified frequency and stat
+
+        data (array) -- numpy array containing data
+        freq (str) -- 'annual' or 'monthly'
+        historical (bool) -- is the data historical or future?
+        stat (str) -- do you want to find the sum or the mean
         """
+        #TODO Might be faster to utilize Pandas Panels instead of for loop.
+
         ts = self.timestamp(historical=historical)
         yrs_uni = np.unique(ts.year)
         lat_dim = data.shape[1]
@@ -276,8 +281,30 @@ class AggStats(object):
                 counter += 1
         return agg_data
 
+    def timestamp(self, historical=True):
+        """
+        Returns datetime list from time variable in netcdf file.
+        """
+        days_offset = -25567
+        if historical:
+            data = Dataset(self.hist_list[0])
+        else:
+            data = Dataset(self.fut_list[0])
+        t = data.variables['time'][:]
+        data.close()
+        x = pd.to_datetime(t + days_offset, unit='D')
+        return x
 
-    def mod_diff_ann(self, save=False, dpath="./", stat='mean', ctype='absolute'):
+
+class MacaPrecip(MacaStats):
+    """
+    This class handles precipitation statistics.
+    """
+
+    def __init__(self, hist_list, fut_list):
+        MacaStats.__init__(self, hist_list, fut_list)
+
+    def ens_diff_ann(self, save=False, dpath="./", stat='mean', ctype='absolute'):
         """
         Find the projected annual change for each model in list. Returns a list
         of the model names and an array of the results.
@@ -295,12 +322,8 @@ class AggStats(object):
         lon_dim = lon.shape[0]
         print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
 
-        # Find name of variable and change to netcdf name
-        vname = self.hist_list[0].split("_")[4]
-        if vname == "pr":
-            netname = "precipitation"
-        elif vname == "tasmin" or vname == "tasmax":
-            netname = "air_temperature"
+        # Set names for variable
+        netname = "precipitation"
 
         # Find end year and scenario
         end_yr = self.fut_list[0].split("_")[9]
@@ -322,44 +345,24 @@ class AggStats(object):
             hist_data = Dataset(hist_file)
             hist_var = hist_data.variables[netname][:]
 
-            # If temperature, find annual average
-            if netname == 'air_temperature':
-                if stat == 'mean':
-                    fut_stat = fut_var.mean(axis=0)
-                    hist_stat = hist_var.mean(axis=0)
-                    name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
-                elif stat == 'std':
-                    fut_stat = fut_var.std(axis=0)
-                    hist_stat = hist_var.std(axis=0)
-                    name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
-
-            # If precipitation, find annual sum
-            elif netname == 'precipitation':
-                fut = self.agg_time(fut_var, freq='annual',
-                                    historical=False, stat='sum')
-                if stat == 'mean':
-                    fut_stat = fut.mean(axis=0)  # average over all years
-                    name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
-                elif stat == 'std':
-                    fut_stat = fut.std(axis=0)  # average over all years
-                    name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
-
-                hist = self.agg_time(hist_var, freq='annual',
-                                     historical=True, stat='sum')
-                if stat == 'mean':
-                    hist_stat = hist.mean(axis=0)  # average over all years
-                    name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
-                elif stat == 'std':
-                    hist_stat = hist.std(axis=0)  # average over all years
-                    name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
+            fut = self.agg_time(fut_var, freq='annual',
+                                historical=False, stat='sum')
+            hist = self.agg_time(hist_var, freq='annual',
+                                 historical=True, stat='sum')
+            if stat == 'mean':
+                hist_stat = hist.mean(axis=0)  # average over all years
+                fut_stat = fut.mean(axis=0)  # average over all years
+                name = dpath + "model_diffs_pr_" + rcp + "_" + end_yr
+            elif stat == 'std':
+                hist_stat = hist.std(axis=0)  # std over all years
+                fut_stat = fut.std(axis=0)  # std over all years
+                name = dpath + "model_vars_pr_" + rcp + "_" + end_yr
 
             if ctype == 'absolute':
                 diff = fut_stat - hist_stat
             elif ctype == 'percent' and netname == 'precipitation':
                 diff = (fut_stat - hist_stat)/hist_stat
-                name = dpath + "model_vars_perc_" + vname + "_" + rcp + "_" + end_yr
-            elif ctype == 'percent' and netname == 'air_temperature':
-                raise ValueError("Please change ctype to absolute when calculating temp.")
+                name = dpath + "model_vars_perc_pr_" + rcp + "_" + end_yr
 
             # Add diff to numpy array
             diff_arr[counter, :, :] = diff
@@ -376,25 +379,7 @@ class AggStats(object):
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
-
-    def timestamp(self, historical=True):
-        """
-        Returns datetime list from time variable in netcdf file.
-        """
-        days_offset = -25567
-        if historical:
-            data = Dataset(self.hist_list[0])
-        else:
-            data = Dataset(self.fut_list[0])
-        t = data.variables['time'][:]
-        data.close()
-        x = pd.to_datetime(t + days_offset, unit='D')
-        return x
-
-
-
-
-    def mod_diff_mon(self, save=False, dpath="./"):
+    def ens_diff_mon(self, save=False, dpath="./"):
         """
         Find the projected monthly change for each model in list. Returns a list
         of the model names and an array of the results.
@@ -411,12 +396,8 @@ class AggStats(object):
         time_dim = 12  # number of months
         print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
 
-        # Find name of variable and change to netcdf name
-        vname = self.hist_list[0].split("_")[4]
-        if vname == "pr":
-            netname = "precipitation"
-        elif vname == "tasmin" or vname == "tasmax":
-            netname = "air_temperature"
+        # Set variable names
+        netname = "precipitation"
 
         # Find end year and scenario
         end_yr = self.fut_list[0].split("_")[9]
@@ -438,23 +419,195 @@ class AggStats(object):
             fut_var = fut_data.variables[netname][:]
             hist_var = hist_data.variables[netname][:]
 
-            # Find average for each month
-            fut_mth = np.zeros((time_dim, lat_dim, lon_dim))
-            hist_mth = np.zeros((time_dim, lat_dim, lon_dim))
+            # Find the monthly sum
+            fut_mth = self.agg_time(fut_var, freq='monthly',
+                                    historical=False, stat='sum')
+            hist_mth = self.agg_time(hist_var, freq='monthly',
+                                     historical=True, stat='sum')
 
-            # If temperature find the monthly average
-            if netname == 'air_temperature':
-                fut_mth = self.agg_time(fut_var, freq='monthly',
-                                        historical=False, stat='mean')
-                hist_mth = self.agg_time(hist_var, freq='monthly',
-                                         historical=True, stat='mean')
+            diff = fut_mth - hist_mth
 
-            # If precipitation find the monthly sum
-            elif netname == 'precipitation':
-                fut_mth = self.agg_time(fut_var, freq='monthly',
-                                        historical=False, stat='sum')
-                hist_mth = self.agg_time(hist_var, freq='monthly',
-                                         historical=True, stat='sum')
+            # Add diff to numpy array
+            diff_arr[counter, :, :, :] = diff
+
+            # Complete loop
+            counter += 1
+            fut_data.close()
+            hist_data.close()
+            print("Done processing " + mod_name)
+
+        if save:
+            print("Saving file...")
+            name = dpath + "model_diffs_mth_pr_" + rcp + "_" + end_yr
+            np.save(name, diff_arr)
+        print("Processing is complete. Thanks for your patience.")
+        return diff_arr
+
+
+class MacaTemp(MacaStats):
+    """
+    This class handles temperature statistics.
+    """
+
+    def __init__(self, hist_list, fut_list, hist_list_tmax=None, fut_list_tmax=None):
+        MacaStats.__init__(self, hist_list, fut_list)
+        if hist_list_tmax:
+            # Rename so that hist_list and fut_list become tmin lists
+            self.hist_list_tmin = self.hist_list
+            self.fut_list_tmin = self.fut_list
+            self.hist_list_tmax = hist_list_tmax
+            self.fut_list_tmax = fut_list_tmax
+
+    def list_loop(self, stat='mean'):
+        """
+        Returns array of differences (future minus historical) from list of models
+        for the specified statistic.
+
+        hist_list (list) -- list of historical files (this variable becomes tmin if
+        tmax is specified (i.e. for GDD calculations).
+
+        fut_list (list) -- list of future files (this variable becomes tmin if tmax
+        is specified (i.e. for GDD calculations).
+
+        hist_list_tmax (list) -- list of historical tmax files
+
+        fut_list_tmax (list) -- list of future tmax files
+
+        stat (str) -- 'mean', 'std', 'gdd'
+        """
+
+        mod_dim = len(self.hist_list)
+        lat, lon = self.get_latlon()
+        lat_dim = lat.shape[0]
+        lon_dim = lon.shape[0]
+        netname = 'air_temperature'
+
+        diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
+        counter = 0
+        for fut_file in self.fut_list:
+            # Get name of the model
+            mod_name = fut_file.split("_")[5]
+
+            # Find historic file that matches future file
+            hist_file = [s for s in self.hist_list if mod_name in s][0]
+
+
+            # Open datasets
+            fut_data = Dataset(fut_file)
+            fut_var = fut_data.variables[netname][:]
+            hist_data = Dataset(hist_file)
+            hist_var = hist_data.variables[netname][:]
+            fut_data.close()
+            hist_data.close()
+
+            # If temperature, find annual average
+            if stat == 'mean':
+                fut_stat = fut_var.mean(axis=0)
+                hist_stat = hist_var.mean(axis=0)
+            elif stat == 'std':
+                fut_stat = fut_var.std(axis=0)
+                hist_stat = hist_var.std(axis=0)
+            elif stat == 'gdd':
+                fut_tmax_file = [s for s in self.fut_list_tmax if mod_name in s][0]
+                hist_tmax_file = [s for s in self.hist_list_tmax if mod_name in s][0]
+                # TODO Need to finish writing this function
+
+            diff = fut_stat - hist_stat
+
+            # Add diff to numpy array
+            diff_arr[counter, :, :] = diff
+
+            # Complete loop
+            counter += 1
+            print("Done processing " + mod_name)
+
+        return diff_arr
+
+
+    def ens_diff_ann(self, save=False, dpath="./", stat='mean'):
+        """
+        Find the projected annual change for each model in list. Returns a list
+        of the model names and an array of the results.
+
+        save (bool) -- do you want to save numpy array?
+        dpath (str) -- destination directory for saving file
+        stat (str) -- statistic across the time domain (i.e. mean or standard deviation)
+        """
+
+        # Set dimensions of output
+        mod_dim = len(self.hist_list)
+        print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
+
+        # Find name of variable and change to netcdf name
+        vname = self.hist_list[0].split("_")[4]
+
+        # Find end year and scenario
+        end_yr = self.fut_list[0].split("_")[9]
+        rcp = self.fut_list[0].split("_")[6]
+
+        # For each model in the list find the projected change
+        if stat == 'mean':
+            diff_arr = self.list_loop(stat='mean')
+            name = dpath + "model_diffs_" + vname + "_" + rcp + "_" + end_yr
+        elif stat == 'std':
+            diff_arr = self.list_loop(stat='std')
+            name = dpath + "model_vars_" + vname + "_" + rcp + "_" + end_yr
+        elif stat == 'gdd':
+            diff_arr = self.list_loop(stat='gdd')
+            name = dpath + "model_gdd_" + rcp + "_" + end_yr
+
+        if save:
+            print("Saving file...")
+            np.save(name, diff_arr)
+        print("Processing is complete. Thanks for your patience.")
+        return diff_arr
+
+    def ens_diff_mon(self, save=False, dpath="./"):
+        """
+        Find the projected monthly change for each model in list. Returns a list
+        of the model names and an array of the results.
+
+        save (bool) -- do you want to save numpy array?
+        dpath (str) -- destination directory for saving file
+        """
+
+        # Set dimensions of output
+        mod_dim = len(self.hist_list)
+        lat, lon = self.get_latlon()
+        lat_dim = lat.shape[0]
+        lon_dim = lon.shape[0]
+        time_dim = 12  # number of months
+        print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
+
+        # Find name of variable and change to netcdf name
+        vname = self.hist_list[0].split("_")[4]
+        netname = "air_temperature"
+
+        # Find end year and scenario
+        end_yr = self.fut_list[0].split("_")[9]
+        rcp = self.fut_list[0].split("_")[6]
+
+        # For each model in the list find the projected change
+        diff_arr = np.zeros((mod_dim, time_dim, lat_dim, lon_dim))
+        counter = 0
+        for fut_file in self.fut_list:
+            # Get name of the model
+            mod_name = fut_file.split("_")[5]
+
+            # Find historic file that matches future file
+            hist_file = [s for s in self.hist_list if mod_name in s][0]
+
+            # Open datasets
+            fut_data = Dataset(fut_file)
+            hist_data = Dataset(hist_file)
+            fut_var = fut_data.variables[netname][:]
+            hist_var = hist_data.variables[netname][:]
+
+            # Find the monthly average
+            fut_mth = self.agg_time(fut_var, freq='monthly',
+                                    historical=False, stat='mean')
+            hist_mth = self.agg_time(hist_var, freq='monthly',
+                                     historical=True, stat='mean')
 
             diff = fut_mth - hist_mth
 
