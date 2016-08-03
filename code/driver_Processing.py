@@ -1,11 +1,11 @@
 import macaproc as mp
 import macastats as ms
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-# gis_path = "/home/nick/workspace/shapefiles/"
+# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+gis_path = "/home/nick/workspace/shapefiles/"
 save_path = "/home/nick/workspace/data/annually/"
 
 mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
@@ -18,8 +18,8 @@ hist_tmin = mp.select_mod(hist_rcp, var='tasmin', mod=mod_list)
 hist_tmax = mp.select_mod(hist_rcp, var='tasmax', mod=mod_list)
 hist_pr = mp.select_mod(hist_rcp, var='pr', mod=mod_list)
 
-rcp = rcp_scen[1]
-tr = time_range[1]
+# rcp = rcp_scen[1]
+# tr = time_range[1]
 for rcp in rcp_scen:
     for tr in time_range:
 
@@ -50,10 +50,11 @@ for rcp in rcp_scen:
         # temp_avg = ms.temp_average(tmin, tmax, save=True, dpath=tavg)
 
         ######### Annual Ensemble Variability ############
-        aggstats_pr = ms.MacaPrecip(hist_pr, fut_pr)
-        var_pr = aggstats_pr.ens_diff_ann(save=True, dpath=save_path,
-                                          stat='std', ctype='absolute')
+        # aggstats_pr = ms.MacaPrecip(hist_pr, fut_pr)
+        # var_pr = aggstats_pr.ens_diff_ann(save=True, dpath=save_path,
+        #                                   stat='std', ctype='absolute')
 
         ######### Annual Ensemble GDD #####################
-
+        aggstats_t = ms.MacaTemp(hist_tmin, fut_tmin, hist_tmax, fut_tmax)
+        gdd_diff = aggstats_t.ens_diff_ann(save=True, dpath=save_path, stat='gdd')
 

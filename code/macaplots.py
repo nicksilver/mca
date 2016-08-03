@@ -351,13 +351,13 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
         p.select_one(HoverTool).tooltips = [
             ('Month', '@month'),
             ('Climate Division', '@climdiv'),
-            ('Ensemble Median', '@value')
+            ('Ensemble Mean', '@value')
         ]
     else:
         p.select_one(HoverTool).tooltips = [
             ('Month', '@month'),
             ('Climate Division', '@climdiv'),
-            ('Ensemble Median', '@value'),
+            ('Ensemble Mean', '@value'),
             ('(Ensemble Min., Model)', '(@min_val, @min_mod)'),
             ('(Ensemble Max., Model)', '(@max_val, @max_mod)'),
             ('Model Agreement', '@perc_agree %')

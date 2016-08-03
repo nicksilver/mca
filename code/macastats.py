@@ -66,9 +66,9 @@ def zstats(gis_path, net_data, metric=True, precip=False):
     aff = Affine(a, b, c, d, e, f)
 
     # Get zone stats for climate divisions
-    stats=['min', 'max', 'mean', 'median', 'count', 'std']
+    stats = ['min', 'max', 'mean', 'median', 'count', 'std']
 
-    if len(net_data.shape)==3:
+    if len(net_data.shape) == 3:
         ndata = net_data[0, :, :]
     else:
         ndata = net_data
@@ -138,11 +138,13 @@ def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
         np.save(dpath, tavg)
     return tavg
 
-def gdd(tmin, tmax, base):
+def gdd(tmin, tmax, base=273.15):
     """
-    Returns growing degree day from numpy arrays.
+    Returns growing degree day from numpy arrays. Base value should be in Kelvin.
     """
-    return (tmin + tmax)/2. - base
+    gdd = (tmin + tmax)/2. - base
+    gdd[gdd < 0] = 0
+    return gdd
 
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
                  metric=True):
@@ -158,6 +160,8 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
     :param metric: Should we return values in metric (mm and C) or US (in. and F)
     :return: Returns dataframe of min, min_model, max, max_name, % agreement
     """
+
+    # TODO function needs to handle annual data too
     # Process zonal stats for each model
     df = pd.DataFrame()
     for m in range(data.shape[0]):
@@ -452,9 +456,6 @@ class MacaTemp(MacaStats):
     def __init__(self, hist_list, fut_list, hist_list_tmax=None, fut_list_tmax=None):
         MacaStats.__init__(self, hist_list, fut_list)
         if hist_list_tmax:
-            # Rename so that hist_list and fut_list become tmin lists
-            self.hist_list_tmin = self.hist_list
-            self.fut_list_tmin = self.fut_list
             self.hist_list_tmax = hist_list_tmax
             self.fut_list_tmax = fut_list_tmax
 
@@ -491,28 +492,54 @@ class MacaTemp(MacaStats):
             # Find historic file that matches future file
             hist_file = [s for s in self.hist_list if mod_name in s][0]
 
-
-            # Open datasets
-            fut_data = Dataset(fut_file)
-            fut_var = fut_data.variables[netname][:]
-            hist_data = Dataset(hist_file)
-            hist_var = hist_data.variables[netname][:]
-            fut_data.close()
-            hist_data.close()
-
             # If temperature, find annual average
             if stat == 'mean':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                fut_data.close()
+                hist_data.close()
                 fut_stat = fut_var.mean(axis=0)
                 hist_stat = hist_var.mean(axis=0)
             elif stat == 'std':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                fut_data.close()
+                hist_data.close()
                 fut_stat = fut_var.std(axis=0)
                 hist_stat = hist_var.std(axis=0)
             elif stat == 'gdd':
+                fut_tmin_data = Dataset(fut_file)
+                fut_tmin_var = fut_tmin_data.variables[netname][:]
+                fut_tmin_data.close()
                 fut_tmax_file = [s for s in self.fut_list_tmax if mod_name in s][0]
+                fut_tmax_data = Dataset(fut_tmax_file)
+                fut_tmax_var = fut_tmax_data.variables[netname][:]
+                fut_tmax_data.close()
+                fut_gdd = gdd(fut_tmin_var, fut_tmax_var)
+                del fut_tmin_var  # Delete to save memory
+                del fut_tmax_var  # Delete to save memory
+                hist_tmin_data = Dataset(hist_file)
+                hist_tmin_var = hist_tmin_data.variables[netname][:]
+                hist_tmin_data.close()
                 hist_tmax_file = [s for s in self.hist_list_tmax if mod_name in s][0]
-                # TODO Need to finish writing this function
+                hist_tmax_data = Dataset(hist_tmax_file)
+                hist_tmax_var = hist_tmax_data.variables[netname][:]
+                hist_tmax_data.close()
+                hist_gdd = gdd(hist_tmin_var, hist_tmax_var)
+                del hist_tmin_var  # Delete to save memory
+                del hist_tmax_var  # Delete to save memory
+                hist_stat = self.agg_time(hist_gdd, freq='annual',
+                                          historical=True, stat='sum').mean(axis=0)
+                fut_stat = self.agg_time(fut_gdd, freq='annual',
+                                         historical=False, stat='sum').mean(axis=0)
 
             diff = fut_stat - hist_stat
+            del fut_stat
+            del hist_stat
 
             # Add diff to numpy array
             diff_arr[counter, :, :] = diff
