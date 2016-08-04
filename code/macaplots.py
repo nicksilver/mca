@@ -165,84 +165,118 @@ def mod_diff_comp_bok(precip1, temp1, mod_names, filepath=None,
         show(p)
 
 
-class clim_divs(object):
+def clim_div_ann(clim_div_shp, stats_df, r_data, title="",
+                 savepath="trash.html", stat='median', var='temp',
+                 browser=True):
     """
-    Object to plot climate data by climate divisions.
+    Returns change in temp. variable for each climate division.
+
+    clim_div_shp - climate division shapefile (includes '.shp')
+    stats_df - results from macastats.zstats()
+    r_data - results from macastats.zstats_range()
+    title - main figure title
+    savepath - add path to save html file
+    stat - stat to include from macastats.zstats() output
+    var - 'temp' or 'precip'
+    browser - should I show in the browser
     """
-    def __init__(self, clim_div_shp):
-        self.clim_div_shp = clim_div_shp
-        c = fiona.open(clim_div_shp)
-        self.data = list(c)
-        c.close()
-        coords = [div['geometry']['coordinates'] for div in self.data]
-        coords_clean = [div[0] for div in coords]
-        self.xs = [[x for x, y in n] for n in coords_clean]
-        self.ys = [[y for x, y in n] for n in coords_clean]
 
+    # Get coordinates
+    c = fiona.open(clim_div_shp+".shp")
+    data = list(c)
+    c.close()
+    coords = [div['geometry']['coordinates'] for div in data]
+    coords_clean = [div[0] for div in coords]
+    xs = [[x for x, y in n] for n in coords_clean]
+    ys = [[y for x, y in n] for n in coords_clean]
+    cd_sorter = [d['properties']['CLIMDIV'] for d in data]  # Order of Climate Divisions
 
-    def temp_plot(self, stats_df, title="", savepath=None, stat='mean'):
-        """
-        Returns change in temp. variable for each climate division.
+    # Make sure data is consistently sorted
+    stats_df.climdiv = stats_df.climdiv.astype("category")
+    stats_df.climdiv.cat.set_categories(cd_sorter, inplace=True)
+    stats_df = stats_df.sort_values('climdiv')
+    r_data.climdiv = r_data.climdiv.astype("category")
+    r_data.climdiv.cat.set_categories(cd_sorter, inplace=True)
+    r_data = r_data.sort_values('climdiv')
 
-        clim_div_shp - climate division shapefile (includes '.shp')
-        stats_df - results from macastats.zstats()
-        title - main figure title
-        savepath - add path to save html file
-        stat - stat to include from macastats.zstats() output
-        """
+    # Set values
+    values = list(stats_df[stat])
+    cd_dict = {
+        '2401': 'N West',
+        '2402': 'S West',
+        '2403': 'N Central',
+        '2404': 'Central',
+        '2405': 'S Central',
+        '2406': 'N East',
+        '2407': 'S East'
+    }
 
-        values = list(stats_df[stat])
-        cd_names = list(stats_df['climdiv'])
-        colors = [Oranges8[int(value)] for value in values]
+    # Create colormap
+    if var == 'temp':
+        col_samp = Oranges8[::-1]  # reverse the order
+        int_vals = zero_range(stats_df[stat], 8)
+        legend = add_colorbar(col_samp, stats_df[stat].min(), stats_df[stat].max(),
+                              plot_height=700)
+        webtitle = 'MT Change in Annual Temp.'
+    elif var == 'precip':
+        col_samp = BrBG8[::-1]  # reverse the order
+        int_vals = const_range(stats_df[stat], 8)
+        legend = add_colorbar(col_samp, -stats_df[stat].abs().max(),
+                              stats_df[stat].abs().max(), plot_height=700)
+        webtitle = 'MT Change in Annual Precip.'
 
-        source = ColumnDataSource(data=dict(
-            x=self.xs,
-            y=self.ys,
-            color=colors,
-            name=cd_names,
-            difference=values))
+    colors = [col_samp[int(value)] for value in int_vals]
+    climdivs = [cd_dict[str(cd)] for cd in stats_df['climdiv']]
 
-        TOOLS="pan,wheel_zoom,box_zoom,reset,hover,save"
-        p = figure(tools=TOOLS, plot_width=1100, plot_height=700, title=title)
-        p.grid.grid_line_color = None
-        p.xaxis.axis_label = "Longitude"
-        p.yaxis.axis_label = "Latitude"
-        p.patches('x', 'y', fill_alpha=0.5, line_color='white', line_width=1.5,
-                  source=source, fill_color='color')
+    output_file(savepath, title=webtitle)
 
-        hover = p.select_one(HoverTool)
-        hover.point_policy = 'follow_mouse'
-        hover.tooltips = [
-            ("Climate Div.", "@name"),
-            ("Difference", "@difference"),
-            ("(Long, Lat)", "($x, $y)")
-        ]
+    source = ColumnDataSource(data=dict(
+        climdiv=climdivs,
+        x=xs,
+        y=ys,
+        value=values,
+        min_val=r_data['min'],
+        min_mod=r_data['model_min'],
+        max_val=r_data['max'],
+        max_mod=r_data['model_max'],
+        perc_agree=r_data['perc_agree'],
+        color=colors)
+    )
 
-        if savepath is not None:
-            output_file(savepath)
-        show(p)
+    TOOLS="pan,wheel_zoom,box_zoom,reset,hover,save"
+    p = figure(tools=TOOLS, plot_width=1100, plot_height=700, title=title)
+    p.grid.grid_line_color = None
+    p.xaxis.axis_label = "Longitude"
+    p.yaxis.axis_label = "Latitude"
+    p.patches('x', 'y', line_color='white', line_width=1.5,
+              source=source, fill_color='color')
 
-    def prec_plot(self, stats_dict, title="", savepath=None):
-        """
-        Returns change in precip variable for each climate division.
+    hover = p.select_one(HoverTool)
+    hover.point_policy = 'follow_mouse'
+    hover.tooltips = [
+        ("Climate Div.", "@climdiv"),
+        ("(Long, Lat)", "($x, $y)"),
+        ("Ensemble Mean", "@value"),
+        ('(Ensemble Min., Model)', '(@min_val, @min_mod)'),
+        ('(Ensemble Max., Model)', '(@max_val, @max_mod)'),
+        ('Model Agreement', '@perc_agree %')
+    ]
 
-        clim_div_shp - climate division shapefile (includes '.shp')
-        stats_dict - results from macastats.zstats()
-        title - main figure title
-        savepath - add path to save html file
-        """
-        pass
+    if browser:
+        show(gridplot(p, legend, ncols=2))
+    else:
+        save(gridplot(p, legend, ncols=2))
 
-
-def zero_range(data, maxi):
+def zero_range(data, breaks=7):
     """
     Returns data that spans the range from 0 to maxi
-    maxi - maximum value of the range
+    breaks - number of integers to be assigned
     """
-    fact = np.float64(maxi)/(max(data - min(data)))
-    nd = fact*(data-min(data))
-    return list(nd.astype(int))
-
+    r = np.linspace(data.min(), data.max(), breaks)
+    nd = []
+    for val in data:
+        nd.append(find_nearest(r, val))
+    return nd
 
 def find_nearest(array, val):
     """
@@ -251,7 +285,6 @@ def find_nearest(array, val):
 
     idx = np.abs(array - val).argmin()
     return idx
-
 
 def const_range(data, breaks=8):
     """
@@ -265,23 +298,22 @@ def const_range(data, breaks=8):
         nd.append(find_nearest(r, val))
     return nd
 
-
-def add_colorbar(palette, low, high):
+def add_colorbar(palette, low, high, plot_height=400):
     """
     Returns colorbar legend for bokeh plot
     palette - list of colors
     low - low data value
-    hight - high data value
+    high - high data value
+    plot_height - value for height of plot
     """
     y = np.linspace(low, high, len(palette))
     dy = y[1] - y[0]
     legend = figure(tools="", x_range=[0, 1], y_range=[low-0.5*dy, high+0.5*dy],
-                    plot_width=100, plot_height=400, y_axis_location='right')
+                    plot_width=100, plot_height=plot_height, y_axis_location='right')
     legend.toolbar_location = None
     legend.xaxis.visible = None
     legend.rect(x=0.5, y=y, color=palette, width=1, height=dy)
     return legend
-
 
 def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
                   save_path="./misc.html", var='temp'):
@@ -295,15 +327,28 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
     r_data - dataframe with min and max of zonal stats
     save_path - where do you want to save the html file?
     """
+
     mth_samp = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
                 "Oct", "Nov", "Dec"]
 
-    cd_samp = ["N West", "S West", "N Central", "Central", "S Central", "N East",
-                "S East"]
+    cd_dict = {
+        '2401': 'N West',
+        '2402': 'S West',
+        '2403': 'N Central',
+        '2404': 'Central',
+        '2405': 'S Central',
+        '2406': 'N East',
+        '2407': 'S East'
+    }
 
+    # Make sure data is consistently sorted
+    stats_df = stats_df.sort_values('climdiv')
+    r_data = r_data.sort_values('climdiv')
+
+    # Setup colorbar
     if var == 'temp':
         col_samp = Oranges8[::-1]  # reverse the order
-        int_vals = zero_range(stats_df[stat], 7)
+        int_vals = zero_range(stats_df[stat], 8)
         legend = add_colorbar(col_samp, stats_df[stat].min(), stats_df[stat].max())
         webtitle = 'MT Change in Monthly Temp.'
     elif var == 'precip':
@@ -315,7 +360,7 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
 
     colors = [col_samp[val] for val in int_vals]
     months = [mth_samp[mth-1] for mth in stats_df['month']]
-    climdivs = [cd_samp[cd - 2401] for cd in stats_df['climdiv']]
+    climdivs = [cd_dict[str(cd)] for cd in stats_df['climdiv']]
     
     output_file(save_path, title=webtitle)
 
@@ -332,7 +377,7 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
     )
 
     TOOLS = "hover,save"
-    p = figure(title=title, x_range=mth_samp, y_range=cd_samp,
+    p = figure(title=title, x_range=mth_samp, y_range=cd_dict.values(),
                x_axis_location='above', plot_width=900, plot_height=400,
                tools=TOOLS)
 

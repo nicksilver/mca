@@ -25,6 +25,9 @@ tbeg = ['Change in Monthly Average Temp (F) ',
         'Change in Monthly Max Temp (F) ']
 
 # Loop through specified files and plot
+# i = 0
+# sym = syms[0]
+# f = fnames[0]
 for i, sym in enumerate(syms):
     print("Beginning to process " + sym[2:-2])
     fnames = glob.glob(data_path + sym)
@@ -43,7 +46,6 @@ for i, sym in enumerate(syms):
                                    precip=False, metric=False)
         title = tbeg[i]+rcpt+dranget
         fname = sym[2:-2]+"_rcp"+rcp+"_"+drange+"_mthly.html"
-        mplt.clim_div_grid(zs, stat='median', title=title, browser=False,
-                           r_data=zs_range, var='temp',
-                           save_path=save_path+fname)
+        mplt.clim_div_grid(zs, stat='median', title=title, browser=True,
+                           r_data=zs_range, var='temp', save_path=save_path+fname)
 

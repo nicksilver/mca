@@ -58,3 +58,4 @@ for rcp in rcp_scen:
         aggstats_t = ms.MacaTemp(hist_tmin, fut_tmin, hist_tmax, fut_tmax)
         gdd_diff = aggstats_t.ens_diff_ann(save=True, dpath=save_path, stat='gdd')
 
+# TODO need to process percent precipitation change

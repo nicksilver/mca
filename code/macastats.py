@@ -78,7 +78,7 @@ def zstats(gis_path, net_data, metric=True, precip=False):
     zs = pd.DataFrame(invert_dict(zs))
     zs['climdiv'] = cd_names
 
-    if len(net_data.shape)==3:
+    if len(net_data.shape) == 3:
         mth = np.repeat(1, len(zs))
         zs['month'] = mth
         for m in range(net_data.shape[0]-1):
@@ -161,11 +161,13 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
     :return: Returns dataframe of min, min_model, max, max_name, % agreement
     """
 
-    # TODO function needs to handle annual data too
     # Process zonal stats for each model
     df = pd.DataFrame()
     for m in range(data.shape[0]):
-        zs = zstats(gis_path, data[m, :, :, :])
+        if len(data.shape) > 3:
+            zs = zstats(gis_path, data[m, :, :, :])
+        else:
+            zs = zstats(gis_path, data[m, :, :])
         mn = np.repeat(mod_list[m], len(zs))
         zs['model'] = mn
         df = df.append(zs)
@@ -177,11 +179,13 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
     dfs = pd.DataFrame()
     for m in range(1, 13):
         for cd in range(2401, 2408):
-            cdm = df[[stat, 'model']][(df['climdiv'] == cd) & (df['month'] == m)]
-
-            # Is the median ensemble value positive
-            med_bool = list(zs_data[stat][(zs_data['climdiv'] == cd) &
-                                      (zs_data['month'] == m)] > 0)[0]
+            if len(data.shape) > 3:
+                cdm = df[[stat, 'model']][(df['climdiv'] == cd) & (df['month'] == m)]
+                med_bool = list(zs_data[stat][(zs_data['climdiv'] == cd) &
+                                              (zs_data['month'] == m)] > 0)[0]
+            else:
+                cdm = df[[stat, 'model']][(df['climdiv'] == cd)]
+                med_bool = list(zs_data[stat][(zs_data['climdiv'] == cd)] > 0)[0]
 
             # Is the current model median value positive
             cdm_bool = (cdm[stat] > 0)
@@ -199,12 +203,15 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
             temp_df = pd.DataFrame()
             temp_df['perc_agree'] = [perc_agree]
             temp_df['climdiv'] = [cd]
-            temp_df['month'] = [m]
             temp_df['max'] = [cdmax[stat]]
             temp_df['model_max'] = [cdmax['model']]
             temp_df['min'] = [cdmin[stat]]
             temp_df['model_min'] = [cdmin['model']]
+            if len(data.shape) > 3:
+                temp_df['month'] = [m]
             dfs = dfs.append(temp_df)
+        if len(data.shape) == 3:
+            break
 
     # Convert to inches
     if precip and not metric:
