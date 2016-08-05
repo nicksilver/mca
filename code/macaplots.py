@@ -8,6 +8,53 @@ import fiona
 from math import pi
 
 
+def find_nearest(array, val):
+    """
+    Function to find index of nearest grid-cell in array.
+    """
+
+    idx = np.abs(array - val).argmin()
+    return idx
+
+
+def set_colrange(data, breaks, type='minmax'):
+    """
+    Returns integers on a constant scale given low and high value from data.
+    :param data: data to base range from
+    :param breaks: number of breaks
+    :param type: 'minmax'=>range is set by min and max of data; 'equal'=>range
+     is set from the absolute max and the negative of the absolute max. This
+     should be used for precipitation plots.
+    """
+    if type == 'minmax':
+        r = np.linspace(data.min(), data.max(), breaks)
+    elif type == 'equal':
+        high = data.abs().max()
+        r = np.linspace(-high, high, breaks)
+    nd = []
+    for val in data:
+        nd.append(find_nearest(r, val))
+    return nd
+
+
+def add_colorbar(palette, low, high, plot_height=400):
+    """
+    Returns colorbar legend for bokeh plot
+    palette - list of colors
+    low - low data value
+    high - high data value
+    plot_height - value for height of plot
+    """
+    y = np.linspace(low, high, len(palette))
+    dy = y[1] - y[0]
+    legend = figure(tools="", x_range=[0, 1], y_range=[low-0.5*dy, high+0.5*dy],
+                    plot_width=100, plot_height=plot_height, y_axis_location='right')
+    legend.toolbar_location = None
+    legend.xaxis.visible = None
+    legend.rect(x=0.5, y=y, color=palette, width=1, height=dy)
+    return legend
+
+
 def mod_diff_comp(precip1, temp1, leg_lab1="RCP 4.5",
                   precip2=None, temp2=None, leg_lab2="RCP 8.5",
                   title="", mod_names=None, annotate=False,
@@ -214,13 +261,13 @@ def clim_div_ann(clim_div_shp, stats_df, r_data, title="",
     # Create colormap
     if var == 'temp':
         col_samp = Oranges8[::-1]  # reverse the order
-        int_vals = zero_range(stats_df[stat], 8)
+        int_vals = set_colrange(stats_df[stat], 8, type='minmax')
         legend = add_colorbar(col_samp, stats_df[stat].min(), stats_df[stat].max(),
                               plot_height=700)
         webtitle = 'MT Change in Annual Temp.'
     elif var == 'precip':
         col_samp = BrBG8[::-1]  # reverse the order
-        int_vals = const_range(stats_df[stat], 8)
+        int_vals = set_colrange(stats_df[stat], 8, type='equal')
         legend = add_colorbar(col_samp, -stats_df[stat].abs().max(),
                               stats_df[stat].abs().max(), plot_height=700)
         webtitle = 'MT Change in Annual Precip.'
@@ -267,53 +314,6 @@ def clim_div_ann(clim_div_shp, stats_df, r_data, title="",
     else:
         save(gridplot(p, legend, ncols=2))
 
-def zero_range(data, breaks=7):
-    """
-    Returns data that spans the range from 0 to maxi
-    breaks - number of integers to be assigned
-    """
-    r = np.linspace(data.min(), data.max(), breaks)
-    nd = []
-    for val in data:
-        nd.append(find_nearest(r, val))
-    return nd
-
-def find_nearest(array, val):
-    """
-    Function to find index of nearest grid-cell in array.
-    """
-
-    idx = np.abs(array - val).argmin()
-    return idx
-
-def const_range(data, breaks=8):
-    """
-    Returns int values that are on a constant scale
-    breaks - number of integers to be assigned
-    """
-    high = data.abs().max()
-    r = np.linspace(-high, high, breaks)
-    nd = []
-    for val in data:
-        nd.append(find_nearest(r, val))
-    return nd
-
-def add_colorbar(palette, low, high, plot_height=400):
-    """
-    Returns colorbar legend for bokeh plot
-    palette - list of colors
-    low - low data value
-    high - high data value
-    plot_height - value for height of plot
-    """
-    y = np.linspace(low, high, len(palette))
-    dy = y[1] - y[0]
-    legend = figure(tools="", x_range=[0, 1], y_range=[low-0.5*dy, high+0.5*dy],
-                    plot_width=100, plot_height=plot_height, y_axis_location='right')
-    legend.toolbar_location = None
-    legend.xaxis.visible = None
-    legend.rect(x=0.5, y=y, color=palette, width=1, height=dy)
-    return legend
 
 def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
                   save_path="./misc.html", var='temp'):
@@ -348,12 +348,12 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
     # Setup colorbar
     if var == 'temp':
         col_samp = Oranges8[::-1]  # reverse the order
-        int_vals = zero_range(stats_df[stat], 8)
+        int_vals = set_colrange(stats_df[stat], 8, type='minmax')
         legend = add_colorbar(col_samp, stats_df[stat].min(), stats_df[stat].max())
         webtitle = 'MT Change in Monthly Temp.'
     elif var == 'precip':
         col_samp = BrBG8[::-1]  # reverse the order
-        int_vals = const_range(stats_df[stat], 8)
+        int_vals = set_colrange(stats_df[stat], 8, type='equal')
         legend = add_colorbar(col_samp, -stats_df[stat].abs().max(),
                               stats_df[stat].abs().max())
         webtitle = 'MT Change in Monthly Precip.'
