@@ -8,7 +8,7 @@ data_path = "/data/maca_mt/"
 gis_path = "/home/nick/workspace/shapefiles/"
 save_path = "/home/nick/workspace/data/annually/"
 
-mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = ["rcp45", "rcp85"]
 time_range = ["2040_2069", "2070_2099"]
 
