@@ -138,6 +138,14 @@ def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
         np.save(dpath, tavg)
     return tavg
 
+
+def ffd(tmin):
+    """
+    Returns the number of freeze free days per year.
+    """
+    return (tmin > 273.15)
+
+
 def gdd(tmin, tmax, base=273.15):
     """
     Returns growing degree day from numpy arrays. Base value should be in Kelvin.
@@ -146,11 +154,13 @@ def gdd(tmin, tmax, base=273.15):
     gdd[gdd < 0] = 0
     return gdd
 
+
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
                  metric=True):
     """
-    Finds the minimum and maximum projection within ensemble and the model name for each.
-    It also finds the percent agreement of the direction of change with the median.
+    Finds the minimum and maximum projection within ensemble and the model name 
+    for each. It also finds the percent agreement of the direction of change 
+    with the median.
     :param data: Array of differences
     :param gis_path: Path to shapefile to get zonal_stats
     :param zs_data: Data returned from zstats()
@@ -481,7 +491,7 @@ class MacaTemp(MacaStats):
 
         fut_list_tmax (list) -- list of future tmax files
 
-        stat (str) -- 'mean', 'std', 'gdd'
+        stat (str) -- 'mean', 'std', 'gdd', 'ffd'
         """
 
         mod_dim = len(self.hist_list)
@@ -540,9 +550,28 @@ class MacaTemp(MacaStats):
                 del hist_tmin_var  # Delete to save memory
                 del hist_tmax_var  # Delete to save memory
                 hist_stat = self.agg_time(hist_gdd, freq='annual',
-                                          historical=True, stat='sum').mean(axis=0)
+                                          historical=True,
+                                          stat='sum').mean(axis=0)
                 fut_stat = self.agg_time(fut_gdd, freq='annual',
-                                         historical=False, stat='sum').mean(axis=0)
+                                         historical=False,
+                                         stat='sum').mean(axis=0)
+            elif stat == 'ffd':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                fut_data.close()
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                hist_data.close()
+                fut_ffd = ffd(fut_var)
+                hist_ffd = ffd(hist_var)
+                del fut_var
+                del hist_var
+                fut_stat = self.agg_time(fut_ffd, freq='annual',
+                                         historical=False,
+                                         stat='sum').mean(axis=0)
+                hist_stat = self.agg_time(hist_ffd, freq='annual',
+                                          historical=True,
+                                          stat='sum').mean(axis=0)
 
             diff = fut_stat - hist_stat
             del fut_stat
@@ -565,7 +594,8 @@ class MacaTemp(MacaStats):
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
-        stat (str) -- statistic across the time domain (i.e. mean or standard deviation)
+        stat (str) -- statistic across the time domain (i.e. mean or standard
+        deviation)
         """
 
         # Set dimensions of output
@@ -589,6 +619,9 @@ class MacaTemp(MacaStats):
         elif stat == 'gdd':
             diff_arr = self.list_loop(stat='gdd')
             name = dpath + "model_gdd_" + rcp + "_" + end_yr
+        elif stat == 'ffd':
+            diff_arr = self.list_loop(stat='ffd')
+            name = dpath + "model_ffd_" + rcp + "_" + end_yr
 
         if save:
             print("Saving file...")
