@@ -154,6 +154,22 @@ def gdd(tmin, tmax, base=273.15):
     gdd[gdd < 0] = 0
     return gdd
 
+def beetle_thresh(self, data):
+    """
+    Returns number of days per month above beetle threshold temp. 
+    Thresholds are: sep=-18.5, oct=-13.9, nov=-10.9, dec=-10.1, jan=-14.1,
+    feb=-16.9, mar=-18.4
+    """
+    thresh_dict = {
+        '9': -18.5,
+        '10': -13.9,
+        '11': -10.9,
+        '12': -10.1,
+        '1': -14.1,
+        '2':-16.9,
+        '3': -18.4
+    }
+    pass
 
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
                  metric=True):
@@ -268,11 +284,12 @@ class MacaStats(object):
         Returns numpy array aggregated to specified frequency and stat
 
         data (array) -- numpy array containing data
-        freq (str) -- 'annual' or 'monthly'
+        freq (str) -- 'annual' or 'monthly' or 'beetle'
         historical (bool) -- is the data historical or future?
         stat (str) -- do you want to find the sum or the mean
         """
         #TODO Might be faster to utilize Pandas Panels instead of for loop.
+        #TODO Need to add beetle frequency
 
         ts = self.timestamp(historical=historical)
         yrs_uni = np.unique(ts.year)
@@ -332,7 +349,7 @@ class MacaPrecip(MacaStats):
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
-        stat (str) -- statistic across the time domain (i.e. mean or standard deviation)
+        stat (str) -- statistic across the time domain (i.e. mean or std)
         ctype (str) -- absolute or percent change
         """
 
@@ -475,7 +492,7 @@ class MacaTemp(MacaStats):
         if hist_list_tmax:
             self.hist_list_tmax = hist_list_tmax
             self.fut_list_tmax = fut_list_tmax
-
+    
     def list_loop(self, stat='mean'):
         """
         Returns array of differences (future minus historical) from list of models
@@ -629,6 +646,9 @@ class MacaTemp(MacaStats):
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
+
+        
+    
     def ens_diff_mon(self, save=False, dpath="./"):
         """
         Find the projected monthly change for each model in list. Returns a list
