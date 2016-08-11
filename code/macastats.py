@@ -12,6 +12,7 @@ from affine import Affine
 import json
 import pandas as pd
 import collections
+import xarray as xr
 
 def invert_dict(dic):
     """
@@ -154,11 +155,13 @@ def gdd(tmin, tmax, base=273.15):
     gdd[gdd < 0] = 0
     return gdd
 
-def beetle_thresh(self, data):
+def beetle_thresh(data):
     """
     Returns number of days per month above beetle threshold temp. 
     Thresholds are: sep=-18.5, oct=-13.9, nov=-10.9, dec=-10.1, jan=-14.1,
     feb=-16.9, mar=-18.4
+
+    data (xarray) -- tmin xarray 
     """
     thresh_dict = {
         '9': -18.5,
@@ -169,7 +172,13 @@ def beetle_thresh(self, data):
         '2':-16.9,
         '3': -18.4
     }
-    pass
+    beetle_arr = np.zeros(len(thresh_dict), data.shape[1], data.shape[2])
+    for i, k in enumerate(thresh_dict.keys()):
+        ds = data['air_temperature']['time.month'==int(k)]
+        ds_bool = ds > (273.15 + thresh_dict[k])
+        ds_agg = ds_bool.sum(axis=0)
+        beetle_arr[i, :, :] = np.array(ds_agg)
+    return beetle_arr
 
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
                  metric=True):
@@ -611,9 +620,12 @@ class MacaTemp(MacaStats):
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
-        stat (str) -- statistic across the time domain (i.e. mean or standard
-        deviation)
+        stat (str) -- 'mean', 'std', 'gdd', 'ffd'
         """
+
+        if (stat=='ffd') or (stat=='beetle'):
+            raw_input("Make sure you are using Tmin for you calculations. 
+            Hit ENTER to continue.")
 
         # Set dimensions of output
         mod_dim = len(self.hist_list)
@@ -645,9 +657,6 @@ class MacaTemp(MacaStats):
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
-
-
-        
     
     def ens_diff_mon(self, save=False, dpath="./"):
         """

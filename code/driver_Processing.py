@@ -1,15 +1,15 @@
 import macaproc as mp
 import macastats as ms
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-# gis_path = "/home/nick/workspace/shapefiles/"
+# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+gis_path = "/home/nick/workspace/shapefiles/"
 # save_path = "/home/nick/workspace/data/annually/"
 save_path = "./"
 
-mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = ["rcp45", "rcp85"]
 time_range = ["2040_2069", "2070_2099"]
 
