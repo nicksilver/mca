@@ -1,11 +1,12 @@
 import macaproc as mp
 import macastats as ms
+import xarray as xr
 
-data_path = "/data/maca_mt/"
+# data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-gis_path = "/home/nick/workspace/shapefiles/"
+data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+# gis_path = "/home/nick/workspace/shapefiles/"
 # save_path = "/home/nick/workspace/data/annually/"
 save_path = "./"
 
@@ -60,7 +61,9 @@ for rcp in rcp_scen:
         # gdd_diff = aggstats_t.ens_diff_ann(save=True, dpath=save_path, stat='gdd')
 
         ######### Annual Ensemble FFD #####################
-        aggstats_t = ms.MacaTemp(hist_tmin, fut_tmin)
-        ffd_diff = aggstats_t.ens_diff_ann(save=False, dpath=save_path, stat='ffd')
+        # aggstats_t = ms.MacaTemp(hist_tmin, fut_tmin)
+        # ffd_diff = aggstats_t.ens_diff_ann(save=False, dpath=save_path, stat='ffd')
 
-# TODO need to process percent precipitation change
+        ############ Beetle Kill Threshold ################
+        data = xr.open_dataset(fut_tmin[0])
+        b_arr = ms.beetle_thresh(data)

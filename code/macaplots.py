@@ -3,7 +3,7 @@ import numpy as np
 from bokeh.plotting import figure, show, save, output_file, ColumnDataSource
 from bokeh.layouts import gridplot
 from bokeh.models import HoverTool
-from bokeh.palettes import Oranges8, BrBG8
+from bokeh.palettes import Oranges8, BrBG8, BrBG11
 import fiona
 from math import pi
 
@@ -50,7 +50,7 @@ def add_colorbar(palette, low, high, plot_height=400):
     legend = figure(tools="", x_range=[0, 1], y_range=[low-0.5*dy, high+0.5*dy],
                     plot_width=100, plot_height=plot_height, y_axis_location='right')
     legend.toolbar_location = None
-    legend.xaxis.visible = None
+    legend.xaxis.visible = False
     legend.rect(x=0.5, y=y, color=palette, width=1, height=dy)
     return legend
 
@@ -266,8 +266,8 @@ def clim_div_ann(clim_div_shp, stats_df, r_data, title="",
                               plot_height=700)
         webtitle = 'MT Change in Annual Temp.'
     elif var == 'precip':
-        col_samp = BrBG8[::-1]  # reverse the order
-        int_vals = set_colrange(stats_df[stat], 8, type='equal')
+        col_samp = BrBG11[::-1]  # reverse the order
+        int_vals = set_colrange(stats_df[stat], 11, type='equal')
         legend = add_colorbar(col_samp, -stats_df[stat].abs().max(),
                               stats_df[stat].abs().max(), plot_height=700)
         webtitle = 'MT Change in Annual Precip.'

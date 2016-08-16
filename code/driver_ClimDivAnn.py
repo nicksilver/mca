@@ -20,12 +20,18 @@ tdict = {
     '2099': ' 2070-2099'
 }
 # syms = ['*_tavg_*', '*_tasmin_*', '*_tasmax_*']
-syms = ['*_diffs_pr_*']
+# syms = ['*_diffs_pr_*']
+# syms = ['*_perc_pr_*', '*_vars_perc_pr_*']
+syms = ['*_vars_pr_*']
 
 # tbeg = ['Change in Annual Average Temp (F) ',
 #         'Change in Annual Min Temp (F) ',
 #         'Change in Annual Max Temp (F) ']
-tbeg = ['Change in Annual Accumulated Precip. (in.) ']
+# tbeg = ['Change in Annual Accumulated Precip. (in.) ']
+# tbeg = ['Percent Change of Annual Precipitation (%) ',
+#         'Percent Change of Precipitation Interannual Variability  (%) ']
+tbeg = ['Change in Precipitation Interannual Variability (in.) ']
+
 
 # Loop through specified files and plot
 # i = 0
@@ -43,9 +49,9 @@ for i, sym in enumerate(syms):
 
         # Calculate clim div stats
         shpfile = gis_path + "MT_CLIM_DIVISIONS"
-        zs = ms.zstats(shpfile, mod_delta.mean(axis=0), metric=False, precip=True)
+        zs = ms.zstats(shpfile, mod_delta.mean(axis=0), units='imperial', precip=True)
         zs_range = ms.zstats_range(mod_delta, shpfile, zs, mod_list, precip=True,
-                                   metric=False)
+                                   units='imperial')
 
         # Plot
         title = tbeg[i]+rcpt+dranget

@@ -24,7 +24,7 @@ def invert_dict(dic):
             result[k].append(v)
     return result
 
-def zstats(gis_path, net_data, metric=True, precip=False):
+def zstats(gis_path, net_data, units='metric', precip=False):
     """
     Returns zonal stats of netcdf raster data from shapefile for a specified
     year.
@@ -33,7 +33,7 @@ def zstats(gis_path, net_data, metric=True, precip=False):
 
     :param net_data: numpy array of data
 
-    :param metric: should the data be in metric (mm and C) or US (in and F) units
+    :param units: 'metric', 'imperial', or 'percent'
 
     :param precip: is the data precip?
 
@@ -91,7 +91,7 @@ def zstats(gis_path, net_data, metric=True, precip=False):
             zs = zs.append(tzs)
 
     # Convert to inches
-    if precip and not metric:
+    if precip and (units == 'imperial'):
         zs[['max', 'min', 'mean', 'median', 'std']] = zs[['max',
                                                           'min',
                                                           'mean',
@@ -99,12 +99,26 @@ def zstats(gis_path, net_data, metric=True, precip=False):
                                                           'std']]*0.0393701
 
     # Convert to Fahrenheit
-    elif not precip and not metric:
+    elif not precip and (units == 'imperial'):
         zs[['max', 'min', 'mean', 'median', 'std']] = zs[['max',
                                                           'min',
                                                           'mean',
                                                           'median',
                                                           'std']]*1.8
+
+    # Convert to percent
+    elif precip and (units == 'percent'):
+        zs[['max', 'min', 'mean', 'median', 'std']] = zs[['max',
+                                                          'min',
+                                                          'mean',
+                                                          'median',
+                                                          'std']]*100
+
+    elif units == 'metric':
+        pass
+
+    else:
+        print "WARNING Check that your variable and units align."
 
     return zs
 
@@ -155,6 +169,7 @@ def gdd(tmin, tmax, base=273.15):
     gdd[gdd < 0] = 0
     return gdd
 
+
 def beetle_thresh(data):
     """
     Returns number of days per month above beetle threshold temp. 
@@ -163,25 +178,29 @@ def beetle_thresh(data):
 
     data (xarray) -- tmin xarray 
     """
-    thresh_dict = {
-        '9': -18.5,
-        '10': -13.9,
-        '11': -10.9,
-        '12': -10.1,
-        '1': -14.1,
-        '2':-16.9,
-        '3': -18.4
-    }
-    beetle_arr = np.zeros(len(thresh_dict), data.shape[1], data.shape[2])
+    thresh_dict = collections.OrderedDict([
+        ('9', -18.5),
+        ('10', -13.9),
+        ('11', -10.9),
+        ('12', -10.1),
+        ('1', -14.1),
+        ('2', -16.9),
+        ('3', -18.4)
+    ])
+    time_dim = len(thresh_dict)
+    lat_dim = data['lat'].shape[0]
+    lon_dim = data['lon'].shape[0]
+    beetle_arr = np.zeros((time_dim, lat_dim, lon_dim))
     for i, k in enumerate(thresh_dict.keys()):
-        ds = data['air_temperature']['time.month'==int(k)]
+        ds = data['air_temperature'][data['time.month'] == int(k)]
         ds_bool = ds > (273.15 + thresh_dict[k])
         ds_agg = ds_bool.sum(axis=0)
         beetle_arr[i, :, :] = np.array(ds_agg)
     return beetle_arr
 
+
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
-                 metric=True):
+                 units='metric'):
     """
     Finds the minimum and maximum projection within ensemble and the model name 
     for each. It also finds the percent agreement of the direction of change 
@@ -192,7 +211,7 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
     :param mod_list: List of the names of the model in order of data[0, :, :, :]
     :param stat: Statistic to use for range from data
     :param precip: Is the variable precipitation?
-    :param metric: Should we return values in metric (mm and C) or US (in. and F)
+    :param metric: 'metric', 'imperial', 'percent'
     :return: Returns dataframe of min, min_model, max, max_name, % agreement
     """
 
@@ -249,12 +268,22 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
             break
 
     # Convert to inches
-    if precip and not metric:
+    if precip and (units == 'imperial'):
         dfs[['max', 'min']] = dfs[['max', 'min']]*0.0393701
 
     # Convert to Fahrenheit
-    elif not precip and not metric:
+    elif not precip and (units == 'imperial'):
         dfs[['max', 'min']] = dfs[['max', 'min']]*1.8
+
+    elif precip and (units == 'percent'):
+        dfs[['max', 'min']] = dfs[['max', 'min']]*100
+
+    elif units == 'metric':
+        pass
+
+    else:
+        print "WARNING check that your variable and units align."
+
     return dfs
 
 
@@ -623,9 +652,10 @@ class MacaTemp(MacaStats):
         stat (str) -- 'mean', 'std', 'gdd', 'ffd'
         """
 
-        if (stat=='ffd') or (stat=='beetle'):
-            raw_input("Make sure you are using Tmin for you calculations. 
-            Hit ENTER to continue.")
+        # Create warning to make sure Tmin is being used for FFD and Beetle stats
+        if (stat == 'ffd') or (stat == 'beetle'):
+            raw_input("Make sure you are using Tmin for you calculations. "
+                      "Hit ENTER to continue.")
 
         # Set dimensions of output
         mod_dim = len(self.hist_list)
