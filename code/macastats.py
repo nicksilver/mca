@@ -178,15 +178,14 @@ def beetle_thresh(data):
 
     data (xarray) -- tmin xarray 
     """
-    thresh_dict = collections.OrderedDict([
-        ('9', -18.5),
-        ('10', -13.9),
-        ('11', -10.9),
-        ('12', -10.1),
-        ('1', -14.1),
-        ('2', -16.9),
-        ('3', -18.4)
-    ])
+    thresh_dict = collections.OrderedDict()
+    thresh_dict['9'] = -18.5
+    thresh_dict['10'] = -13.9
+    thresh_dict['11'] = -10.9
+    thresh_dict['12'] = -10.1
+    thresh_dict['1'] = -14.1
+    thresh_dict['2'] = -16.9
+    thresh_dict['3'] = -18.4
     time_dim = len(thresh_dict)
     lat_dim = data['lat'].shape[0]
     lon_dim = data['lon'].shape[0]
@@ -652,8 +651,8 @@ class MacaTemp(MacaStats):
         stat (str) -- 'mean', 'std', 'gdd', 'ffd'
         """
 
-        # Create warning to make sure Tmin is being used for FFD and Beetle stats
-        if (stat == 'ffd') or (stat == 'beetle'):
+        # Create warning to make sure Tmin is being used for FFD
+        if (stat == 'ffd'):
             raw_input("Make sure you are using Tmin for you calculations. "
                       "Hit ENTER to continue.")
 
@@ -752,3 +751,56 @@ class MacaTemp(MacaStats):
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
+
+    def beetle_mon(self, timeperiod, save=False, dpath="./"):
+        """
+        Find the number of days above monthly threshold for beetle kill. Need to
+        set timeperiod as either 'historical' or 'future'. Also, make sure to use
+        tmin when instantiated the class, otherwise results will be incorrect.
+
+        timeperiod (str) -- should I use the historical data? or future?
+        save (bool) -- do you want to save numpy array?
+        dpath (str) -- destination directory for saving file
+        """
+
+        # Set dimensions of output
+        mod_dim = len(self.hist_list)
+        lat, lon = self.get_latlon()
+        lat_dim = lat.shape[0]
+        lon_dim = lon.shape[0]
+        time_dim = 7  # number of months
+        print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
+
+        # For each model in the list find the projected change
+        beet_final = np.zeros((mod_dim, time_dim, lat_dim, lon_dim))
+        counter = 0
+
+        if timeperiod == 'historical':
+            data_list = self.hist_list
+            name = dpath + "beetle_thresholds_mth_hist"
+        elif timeperiod == 'future':
+            data_list = self.fut_list
+            end_yr = self.fut_list[0].split("_")[9]
+            rcp = self.fut_list[0].split("_")[6]
+            name = dpath + "beetle_thresholds_mth_fut_" + rcp + "_" + end_yr
+
+        for data_file in data_list:
+            # Get name of the model
+            mod_name = data_file.split("_")[5]
+
+            # Open datasets
+            data = xr.open_dataset(data_file)
+            beet_arr = beetle_thresh(data)
+
+            # Add diff to numpy array
+            beet_final[counter, :, :, :] = beet_arr
+
+            # Complete loop
+            counter += 1
+            print("Done processing " + mod_name)
+
+        if save:
+            print("Saving file...")
+            np.save(name, beet_final)
+        print("Processing is complete. Thanks for your patience.")
+        return beet_final

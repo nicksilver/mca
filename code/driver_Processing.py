@@ -2,15 +2,15 @@ import macaproc as mp
 import macastats as ms
 import xarray as xr
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-# gis_path = "/home/nick/workspace/shapefiles/"
-# save_path = "/home/nick/workspace/data/annually/"
-save_path = "./"
+# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+gis_path = "/home/nick/workspace/shapefiles/"
+save_path = "/home/nick/workspace/data/monthly/"
+# save_path = "./"
 
-mod_list = ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
+mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = ["rcp45", "rcp85"]
 time_range = ["2040_2069", "2070_2099"]
 
@@ -65,5 +65,5 @@ for rcp in rcp_scen:
         # ffd_diff = aggstats_t.ens_diff_ann(save=False, dpath=save_path, stat='ffd')
 
         ############ Beetle Kill Threshold ################
-        data = xr.open_dataset(fut_tmin[0])
-        b_arr = ms.beetle_thresh(data)
+        aggstats = ms.MacaTemp(hist_tmin, fut_tmin)
+        b_arr = aggstats.beetle_mon(timeperiod='historical', save=True, dpath=save_path)
