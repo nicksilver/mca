@@ -1,14 +1,13 @@
 import macaproc as mp
 import macastats as ms
-import xarray as xr
 
 data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
 # data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
 # gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
 gis_path = "/home/nick/workspace/shapefiles/"
-save_path = "/home/nick/workspace/data/monthly/"
-# save_path = "./"
+# save_path = "/home/nick/workspace/data/monthly/"
+save_path = "./"
 
 mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = ["rcp45", "rcp85"]
@@ -20,8 +19,8 @@ hist_tmin = mp.select_mod(hist_rcp, var='tasmin', mod=mod_list)
 hist_tmax = mp.select_mod(hist_rcp, var='tasmax', mod=mod_list)
 hist_pr = mp.select_mod(hist_rcp, var='pr', mod=mod_list)
 
-rcp = rcp_scen[1]
-tr = time_range[1]
+# rcp = rcp_scen[1]
+# tr = time_range[1]
 for rcp in rcp_scen:
     for tr in time_range:
 
@@ -66,4 +65,4 @@ for rcp in rcp_scen:
 
         ############ Beetle Kill Threshold ################
         aggstats = ms.MacaTemp(hist_tmin, fut_tmin)
-        b_arr = aggstats.beetle_mon(timeperiod='historical', save=True, dpath=save_path)
+        b_arr = aggstats.beetle_mon(timeperiod='future', save=True, dpath=save_path)
