@@ -163,3 +163,11 @@ def select_mod(fn_list, var, mod=None, yr=None):
     else:
         out_list = yr_list
     return out_list
+
+
+def npy2tif(data, lat, lon):
+    """
+    Function to convert numpy array to geotiff
+    """
+    pass
+

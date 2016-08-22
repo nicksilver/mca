@@ -64,5 +64,9 @@ for rcp in rcp_scen:
         # ffd_diff = aggstats_t.ens_diff_ann(save=False, dpath=save_path, stat='ffd')
 
         ############ Beetle Kill Threshold ################
-        aggstats = ms.MacaTemp(hist_tmin, fut_tmin)
-        b_arr = aggstats.beetle_mon(timeperiod='future', save=True, dpath=save_path)
+        # aggstats = ms.MacaTemp(hist_tmin, fut_tmin)
+        # b_arr = aggstats.beetle_mon(timeperiod='future', save=True, dpath=save_path)
+
+        ############ Days above 90F ########################
+        aggstats = ms.MacaTemp(hist_tmax, fut_tmax)
+        t90_arr = aggstats.ens_diff_ann(save=True, dpath=save_path, stat='tmax90F')

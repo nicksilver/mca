@@ -14,6 +14,7 @@ import pandas as pd
 import collections
 import xarray as xr
 
+
 def invert_dict(dic):
     """
     Converts list of dictionaries to dictionary of lists.
@@ -23,6 +24,7 @@ def invert_dict(dic):
         for k, v in d.items():
             result[k].append(v)
     return result
+
 
 def zstats(gis_path, net_data, units='metric', precip=False):
     """
@@ -122,6 +124,7 @@ def zstats(gis_path, net_data, units='metric', precip=False):
 
     return zs
 
+
 def clim_div_names(json_path):
     """
     Returns a list of the climate division names to be used with zstats()
@@ -136,6 +139,7 @@ def clim_div_names(json_path):
         cd_names.append(cd_name)
 
     return cd_names
+
 
 def temp_average(tmin, tmax, save=False, dpath="./tavg.npy"):
     """
@@ -168,6 +172,13 @@ def gdd(tmin, tmax, base=273.15):
     gdd = (tmin + tmax)/2. - base
     gdd[gdd < 0] = 0
     return gdd
+
+
+def tmax90F(tmax):
+    """
+    Returns boolean array of days above 90 degrees fahrenheit.
+    """
+    return (tmax > 305.372)
 
 
 def beetle_thresh(data):
@@ -545,7 +556,7 @@ class MacaTemp(MacaStats):
 
         fut_list_tmax (list) -- list of future tmax files
 
-        stat (str) -- 'mean', 'std', 'gdd', 'ffd'
+        stat (str) -- 'mean', 'std', 'gdd', 'ffd', 'tmax90F'
         """
 
         mod_dim = len(self.hist_list)
@@ -626,6 +637,23 @@ class MacaTemp(MacaStats):
                 hist_stat = self.agg_time(hist_ffd, freq='annual',
                                           historical=True,
                                           stat='sum').mean(axis=0)
+            elif stat == 'tmax90F':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                fut_data.close()
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                hist_data.close()
+                fut_t90 = tmax90F(fut_var)
+                hist_t90 = tmax90F(hist_var)
+                del fut_var
+                del hist_var
+                fut_stat = self.agg_time(fut_t90, freq='annual',
+                                         historical=False,
+                                         stat='sum').mean(axis=0)
+                hist_stat = self.agg_time(hist_t90, freq='annual',
+                                          historical=True,
+                                          stat='sum').mean(axis=0)
 
             diff = fut_stat - hist_stat
             del fut_stat
@@ -639,7 +667,6 @@ class MacaTemp(MacaStats):
             print("Done processing " + mod_name)
 
         return diff_arr
-
 
     def ens_diff_ann(self, save=False, dpath="./", stat='mean'):
         """
@@ -680,6 +707,9 @@ class MacaTemp(MacaStats):
         elif stat == 'ffd':
             diff_arr = self.list_loop(stat='ffd')
             name = dpath + "model_ffd_" + rcp + "_" + end_yr
+        elif stat == 'tmax90F':
+            diff_arr = self.list_loop(stat='tmax90F')
+            name = dpath + "model_tmax90F_" + rcp + "_" + end_yr
 
         if save:
             print("Saving file...")
