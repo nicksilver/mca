@@ -7,7 +7,7 @@ import glob
 # gis_path = "/home/nick/workspace/shapefiles/"
 gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
 # data_path = "/home/nick/workspace/data/annually/"
-data_path = "/home/nick/MEGA/workspace/mca/data/model_diffs/annually/"
+data_path = "/home/nick/MEGA/workspace/mca/data/processed_metrics/annually/"
 # data_path = "./"
 save_path = "./"
 
@@ -22,7 +22,8 @@ tdict = {
 # syms = ['*_tavg_*', '*_tasmin_*', '*_tasmax_*']
 # syms = ['*_diffs_pr_*']
 # syms = ['*_perc_pr_*', '*_vars_perc_pr_*']
-syms = ['*_vars_pr_*']
+# syms = ['*_vars_pr_*']
+syms = ['*_tmax90F_*']
 
 # tbeg = ['Change in Annual Average Temp (F) ',
 #         'Change in Annual Min Temp (F) ',
@@ -30,7 +31,8 @@ syms = ['*_vars_pr_*']
 # tbeg = ['Change in Annual Accumulated Precip. (in.) ']
 # tbeg = ['Percent Change of Annual Precipitation (%) ',
 #         'Percent Change of Precipitation Interannual Variability  (%) ']
-tbeg = ['Change in Precipitation Interannual Variability (in.) ']
+# tbeg = ['Change in Precipitation Interannual Variability (in.) ']
+tbeg = ['Change in Annual Number of Days above 90F ']
 
 
 # Loop through specified files and plot
@@ -49,13 +51,13 @@ for i, sym in enumerate(syms):
 
         # Calculate clim div stats
         shpfile = gis_path + "MT_CLIM_DIVISIONS"
-        zs = ms.zstats(shpfile, mod_delta.mean(axis=0), units='imperial', precip=True)
-        zs_range = ms.zstats_range(mod_delta, shpfile, zs, mod_list, precip=True,
-                                   units='imperial')
+        zs = ms.zstats(shpfile, mod_delta.mean(axis=0), units='metric', precip=False)
+        zs_range = ms.zstats_range(mod_delta, shpfile, zs, mod_list, precip=False,
+                                   units='metric')
 
         # Plot
         title = tbeg[i]+rcpt+dranget
         fname = sym[2:-2]+"_rcp"+rcp+"_"+drange+"_ann.html"
-        mplt.clim_div_ann(shpfile, zs, zs_range, title=title, var='precip',
+        mplt.clim_div_ann(shpfile, zs, zs_range, title=title, var='temp',
                           savepath=save_path+fname, browser=False)
 
