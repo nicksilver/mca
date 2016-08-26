@@ -6,9 +6,9 @@ shapefiles.
 """
 
 import numpy as np
-from rasterstats import zonal_stats
 from netCDF4 import Dataset
 from affine import Affine
+from rasterstats import zonal_stats
 import json
 import pandas as pd
 import collections
@@ -125,6 +125,104 @@ def zstats(gis_path, net_data, units='metric', precip=False):
     return zs
 
 
+def zs_h2o(gis_path, net_data):
+    """
+    Returns zonal stats of raster data from shapefile.
+    """
+
+    # Affine transformation information:
+    # a = width of a pixel
+    # b = row rotation (typically zero)
+    # c = x-coordinate of the upper-left corner of the upper-left pixel
+    # d = column rotation (typically zero)
+    # e = height of a pixel (typically negative)
+    # f = y-coordinate of the of the upper-left corner of the upper-left pixel
+
+    # These were taken from the MACA netcdf file
+    a = 0.0417
+    b = 0
+    c = -116.6056 - a
+    d = 0
+    e = -0.0417
+    f = 49.3127 - e
+    aff = Affine(a, b, c, d, e, f)
+
+    # Get zone stats for climate divisions
+    stats = ['min', 'max', 'mean', 'median', 'count', 'std']
+    zs = zonal_stats(gis_path, net_data, affine=aff, stats=stats)
+    return zs
+
+
+def zs_h2o_mth(gis_path, net_data):
+    """
+    Returns dataframe of zonal stats for each month
+    """
+    zs_mth = pd.DataFrame()
+    for mth in range(net_data.shape[0]):
+        tzs = zs_h2o(gis_path, net_data[mth, :, :])
+        tzs = pd.DataFrame(invert_dict(tzs))
+        tzs['month'] = mth + 1
+        zs_mth = zs_mth.append(tzs)
+    return zs_mth
+
+
+def zs_h2o_ens(gis_path, net_data, mod_list):
+    """
+    Returns dataframe of zonal stats for each month and each model.
+    """
+    zs_mod = pd.DataFrame()
+    for mod in range(net_data.shape[0]):
+        zs = zs_h2o_mth(gis_path, net_data[mod, :, :, :])
+        mn = np.repeat(mod_list[mod], len(zs))
+        zs['model'] = mn
+        zs_mod = zs_mod.append(zs)
+        print ("I am done processing " + mod_list[mod])
+    return zs_mod
+
+
+def zs_h2o_range(gis_path, net_data, mod_list, stat='median'):
+    """
+    Returns zonal stats for each month and model. Also includes ensemble range
+    and percent agreement among ensemble members.
+    """
+    if stat == 'median':
+        zs = zs_h2o_mth(gis_path, np.median(net_data, axis=0))
+    elif stat == 'mean':
+        zs = zs_h2o_mth(gis_path, np.mean(net_data, axis=0))
+    zs_mod = zs_h2o_ens(gis_path, net_data, mod_list)
+    df = pd.DataFrame()
+    for mth in range(1, 13):
+        # Find statistic for each model for specified month
+        mth_stat = zs_mod[[stat, 'model']][zs_mod['month'] == mth]
+
+        # Is the ensemble median (or mean) positive
+        stat_bool = list(zs[stat][zs['month'] == mth] > 0)[0]
+
+        # Which models have positive median (or mean)
+        mth_bool = (mth_stat[stat] > 0)
+
+        # Record if the signs are alike
+        agr_bool = (stat_bool == list(mth_bool))
+        perc_agree = 100 * agr_bool.sum()/float(len(agr_bool))
+
+        # Find index of min and max models
+        mth_stat.index = range(len(mth_stat))
+        mth_max = mth_stat.iloc[mth_stat[stat].idxmax()]
+        mth_min = mth_stat.iloc[mth_stat[stat].idxmin()]
+
+        # Add range and percent agreement to dataframe
+        temp_df = pd.DataFrame()
+        temp_df['month'] = [mth]
+        temp_df['perc_agree'] = [perc_agree]
+        temp_df['ens_max'] = [mth_max[stat]]
+        temp_df['max_name'] = [mth_max['model']]
+        temp_df['ens_min'] = [mth_min[stat]]
+        temp_df['min_name'] = [mth_min['model']]
+        df = df.append(temp_df)
+
+    return pd.merge(zs, df, on='month')
+
+
 def clim_div_names(json_path):
     """
     Returns a list of the climate division names to be used with zstats()
@@ -183,11 +281,11 @@ def tmax90F(tmax):
 
 def beetle_thresh(data):
     """
-    Returns number of days per month above beetle threshold temp. 
+    Returns number of days per month above beetle threshold temp.
     Thresholds are: sep=-18.5, oct=-13.9, nov=-10.9, dec=-10.1, jan=-14.1,
     feb=-16.9, mar=-18.4
 
-    data (xarray) -- tmin xarray 
+    data (xarray) -- tmin xarray
     """
     thresh_dict = collections.OrderedDict()
     thresh_dict['9'] = -18.5
@@ -212,8 +310,8 @@ def beetle_thresh(data):
 def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
                  units='metric'):
     """
-    Finds the minimum and maximum projection within ensemble and the model name 
-    for each. It also finds the percent agreement of the direction of change 
+    Finds the minimum and maximum projection within ensemble and the model name
+    for each. It also finds the percent agreement of the direction of change
     with the median.
     :param data: Array of differences
     :param gis_path: Path to shapefile to get zonal_stats
@@ -232,6 +330,7 @@ def zstats_range(data, gis_path, zs_data, mod_list, stat='median', precip=False,
             zs = zstats(gis_path, data[m, :, :, :])
         else:
             zs = zstats(gis_path, data[m, :, :])
+        # TODO By using default function settings have I screwed up some of the calculations?
         mn = np.repeat(mod_list[m], len(zs))
         zs['model'] = mn
         df = df.append(zs)
@@ -540,7 +639,7 @@ class MacaTemp(MacaStats):
         if hist_list_tmax:
             self.hist_list_tmax = hist_list_tmax
             self.fut_list_tmax = fut_list_tmax
-    
+
     def list_loop(self, stat='mean'):
         """
         Returns array of differences (future minus historical) from list of models
@@ -716,7 +815,7 @@ class MacaTemp(MacaStats):
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
-    
+
     def ens_diff_mon(self, save=False, dpath="./"):
         """
         Find the projected monthly change for each model in list. Returns a list
