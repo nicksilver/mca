@@ -564,13 +564,14 @@ class MacaPrecip(MacaStats):
         print("Processing is complete. Thanks for your patience.")
         return diff_arr
 
-    def ens_diff_mon(self, save=False, dpath="./"):
+    def ens_diff_mon(self, save=False, dpath="./", ctype='absolute'):
         """
         Find the projected monthly change for each model in list. Returns a list
         of the model names and an array of the results.
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
+        ctype (str) -- absolute or percent change
         """
 
         # Set dimensions of output
@@ -610,7 +611,12 @@ class MacaPrecip(MacaStats):
             hist_mth = self.agg_time(hist_var, freq='monthly',
                                      historical=True, stat='sum')
 
-            diff = fut_mth - hist_mth
+            if ctype == 'absolute':
+                diff = fut_mth - hist_mth
+                name = dpath + "model_diffs_mth_pr_" + rcp + "_" + end_yr
+            elif ctype == 'percent':
+                diff = (fut_mth - hist_mth) / hist_mth
+                name = dpath + "model_diffs_mth_pr_perc_" + rcp + "_" + end_yr
 
             # Add diff to numpy array
             diff_arr[counter, :, :, :] = diff
@@ -623,7 +629,6 @@ class MacaPrecip(MacaStats):
 
         if save:
             print("Saving file...")
-            name = dpath + "model_diffs_mth_pr_" + rcp + "_" + end_yr
             np.save(name, diff_arr)
         print("Processing is complete. Thanks for your patience.")
         return diff_arr

@@ -30,26 +30,6 @@ for rcp in rcp_scen:
         fut_tmax = mp.select_mod(fut_rcp, var='tasmax', mod=mod_list, yr=tr)
         fut_pr = mp.select_mod(fut_rcp, var='pr', mod=mod_list, yr=tr)
 
-        ######## Annual Ensemble Differences ##########
-        # agstats_tmin = ms.MacaStats(hist_tmin, fut_tmin)
-        # mod_delta_tmin = agstats_tmin.ens_diff_ann(save=False, dpath=save_path)
-        # agstats_tmax = ms.MacaStats(hist_tmax, fut_tmax)
-        # mod_delta_tmax = agstats_tmax.ens_diff_ann(save=False, dpath=save_path)
-        # agstats_pr = ms.MacaStats(hist_pr, fut_pr)
-        # mod_delta_pr = agstats_pr.ens_diff_ann(save=True, dpath="./")
-
-        ######## Monthly Ensemble Differences ###########
-        # aggstats_tmax = ms.MacaStats(hist_tmax, fut_tmax)
-        # mod_delta_tmax_mth = aggstats_tmax.ens_diff_mon(save=True, dpath=save_path)
-        # aggstats_tmin = ms.MacaStats(hist_tmin, fut_tmin)
-        # mod_delta_tmin_mth = aggstats_tmin.ens_diff_mon(save=True, dpath=save_path)
-        # aggstats_pr = ms.MacaStats(hist_pr, fut_pr)
-        # mod_delta_pr_mth = aggstats_pr.ens_diff_mon(save=True, dpath="./")
-        # tmin = save_path+"model_diffs_mth_tasmin_rcp85_2069.npy"
-        # tmax = save_path+"model_diffs_mth_tasmax_rcp85_2069.npy"
-        # tavg = save_path+"model_diffs_mth_tavg_rcp85_2069.npy"
-        # temp_avg = ms.temp_average(tmin, tmax, save=True, dpath=tavg)
-
         ######### Annual Ensemble Variability ############
         # aggstats_pr = ms.MacaPrecip(hist_pr, fut_pr)
         # var_pr = aggstats_pr.ens_diff_ann(save=True, dpath=save_path,
@@ -68,5 +48,9 @@ for rcp in rcp_scen:
         # b_arr = aggstats.beetle_mon(timeperiod='future', save=True, dpath=save_path)
 
         ############ Days above 90F ########################
-        aggstats = ms.MacaTemp(hist_tmax, fut_tmax)
-        t90_arr = aggstats.ens_diff_ann(save=True, dpath=save_path, stat='tmax90F')
+        # aggstats = ms.MacaTemp(hist_tmax, fut_tmax)
+        # t90_arr = aggstats.ens_diff_ann(save=True, dpath=save_path, stat='tmax90F')
+
+        ############# Monthly Precip Percentage ############
+        aggstats = ms.MacaPrecip(hist_pr, fut_pr)
+        pr_perc_arr = aggstats.ens_diff_mon(save=False, dpath=save_path, ctype='percent')
