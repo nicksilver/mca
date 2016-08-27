@@ -8,6 +8,7 @@ shapefiles.
 import numpy as np
 from netCDF4 import Dataset
 from affine import Affine
+import fiona  # This seems to get rid of an error when importing rasterstats
 from rasterstats import zonal_stats
 import json
 import pandas as pd
