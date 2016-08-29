@@ -53,4 +53,4 @@ for rcp in rcp_scen:
 
         ############# Monthly Precip Percentage ############
         aggstats = ms.MacaPrecip(hist_pr, fut_pr)
-        pr_perc_arr = aggstats.ens_diff_mon(save=False, dpath=save_path, ctype='percent')
+        pr_perc_arr = aggstats.ens_diff_mon(save=True, dpath=save_path, ctype='percent')
