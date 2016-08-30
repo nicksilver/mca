@@ -280,6 +280,23 @@ def tmax90F(tmax):
     return (tmax > 305.372)
 
 
+def consecDD(pr):
+    """
+    Returns number of consecutive dry days (pr < 0.01" or 0.254 mm).
+    """
+    cdd_count = 0
+    max_count = 0
+
+    for value in pr:
+        if value < 0.254:
+            cdd_count = cdd_count + 1
+            if cdd_count > max_count:
+                max_count = cdd_count
+        else:
+            cdd_count = 0
+    return max_count
+
+
 def beetle_thresh(data):
     """
     Returns number of days per month above beetle threshold temp.
@@ -402,9 +419,13 @@ class MacaStats(object):
     This is the base class containing generic functions used in all subclasses.
     """
 
-    def __init__(self, hist_list, fut_list):
+    def __init__(self, hist_list, fut_list, hist_list_tmax=None, fut_list_tmax=None):
         self.hist_list = hist_list
         self.fut_list = fut_list
+        if hist_list_tmax:
+            self.hist_list_tmax = hist_list_tmax
+            self.fut_list_tmax = fut_list_tmax
+
 
     def get_latlon(self):
         """
@@ -436,8 +457,7 @@ class MacaStats(object):
         historical (bool) -- is the data historical or future?
         stat (str) -- do you want to find the sum or the mean
         """
-        #TODO Might be faster to utilize Pandas Panels instead of for loop.
-        #TODO Need to add beetle frequency
+        #TODO Might be faster to utilize xarray instead of for loop.
 
         ts = self.timestamp(historical=historical)
         yrs_uni = np.unique(ts.year)
@@ -481,6 +501,141 @@ class MacaStats(object):
         x = pd.to_datetime(t + days_offset, unit='D')
         return x
 
+    def list_loop(self, stat='mean'):
+        """
+        Returns array of differences (future minus historical) from list of models
+        for the specified statistic.
+
+        stat (str) -- 'mean', 'std', 'gdd', 'ffd', 'tmax90F', 'consecDD'
+        """
+
+        mod_dim = len(self.hist_list)
+        lat, lon = self.get_latlon()
+        lat_dim = lat.shape[0]
+        lon_dim = lon.shape[0]
+        netname = 'air_temperature'
+        # TODO need to change netname
+
+        diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
+        counter = 0
+        for fut_file in self.fut_list:
+            # Get name of the model
+            mod_name = fut_file.split("_")[5]
+
+            # Find historic file that matches future file
+            hist_file = [s for s in self.hist_list if mod_name in s][0]
+
+            # If temperature, find annual average
+            if stat == 'mean':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                fut_data.close()
+                hist_data.close()
+                fut_stat = fut_var.mean(axis=0)
+                hist_stat = hist_var.mean(axis=0)
+            elif stat == 'std':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                fut_data.close()
+                hist_data.close()
+                fut_stat = fut_var.std(axis=0)
+                hist_stat = hist_var.std(axis=0)
+            elif stat == 'gdd':
+                fut_tmin_data = Dataset(fut_file)
+                fut_tmin_var = fut_tmin_data.variables[netname][:]
+                fut_tmin_data.close()
+                fut_tmax_file = [s for s in self.fut_list_tmax if mod_name in s][0]
+                fut_tmax_data = Dataset(fut_tmax_file)
+                fut_tmax_var = fut_tmax_data.variables[netname][:]
+                fut_tmax_data.close()
+                fut_gdd = gdd(fut_tmin_var, fut_tmax_var)
+                del fut_tmin_var  # Delete to save memory
+                del fut_tmax_var  # Delete to save memory
+                hist_tmin_data = Dataset(hist_file)
+                hist_tmin_var = hist_tmin_data.variables[netname][:]
+                hist_tmin_data.close()
+                hist_tmax_file = [s for s in self.hist_list_tmax if mod_name in s][0]
+                hist_tmax_data = Dataset(hist_tmax_file)
+                hist_tmax_var = hist_tmax_data.variables[netname][:]
+                hist_tmax_data.close()
+                hist_gdd = gdd(hist_tmin_var, hist_tmax_var)
+                del hist_tmin_var  # Delete to save memory
+                del hist_tmax_var  # Delete to save memory
+                hist_stat = self.agg_time(hist_gdd, freq='annual',
+                                          historical=True,
+                                          stat='sum').mean(axis=0)
+                fut_stat = self.agg_time(fut_gdd, freq='annual',
+                                         historical=False,
+                                         stat='sum').mean(axis=0)
+            elif stat == 'ffd':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                fut_data.close()
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                hist_data.close()
+                fut_ffd = ffd(fut_var)
+                hist_ffd = ffd(hist_var)
+                del fut_var
+                del hist_var
+                fut_stat = self.agg_time(fut_ffd, freq='annual',
+                                         historical=False,
+                                         stat='sum').mean(axis=0)
+                hist_stat = self.agg_time(hist_ffd, freq='annual',
+                                          historical=True,
+                                          stat='sum').mean(axis=0)
+            elif stat == 'tmax90F':
+                fut_data = Dataset(fut_file)
+                fut_var = fut_data.variables[netname][:]
+                fut_data.close()
+                hist_data = Dataset(hist_file)
+                hist_var = hist_data.variables[netname][:]
+                hist_data.close()
+                fut_t90 = tmax90F(fut_var)
+                hist_t90 = tmax90F(hist_var)
+                del fut_var
+                del hist_var
+                fut_stat = self.agg_time(fut_t90, freq='annual',
+                                         historical=False,
+                                         stat='sum').mean(axis=0)
+                hist_stat = self.agg_time(hist_t90, freq='annual',
+                                          historical=True,
+                                          stat='sum').mean(axis=0)
+            # elif stat == 'consecDD':
+            #     fut_data = Dataset(fut_file)
+            #     fut_var = fut_data.variables[netname][:]
+            #     fut_data.close()
+            #     hist_data = Dataset(hist_file)
+            #     hist_var = hist_data.variables[netname][:]
+            #     hist_data.close()
+            #     fut_cdd = consecDD(fut_var)
+            #     hist_cdd = consecDD(hist_var)
+            #     del fut_var
+            #     del hist_var
+            #     fut_stat = self.agg_time(fut_cdd, freq='annual',
+            #                              historical=False,
+            #                              stat='sum').mean(axis=0)
+            #     hist_stat = self.agg_time(hist_cdd, freq='annual',
+            #                               historical=True,
+            #                               stat='sum').mean(axis=0)
+
+            diff = fut_stat - hist_stat
+            del fut_stat
+            del hist_stat
+
+            # Add diff to numpy array
+            diff_arr[counter, :, :] = diff
+
+            # Complete loop
+            counter += 1
+            print("Done processing " + mod_name)
+
+        return diff_arr
+
 
 class MacaPrecip(MacaStats):
     """
@@ -488,7 +643,7 @@ class MacaPrecip(MacaStats):
     """
 
     def __init__(self, hist_list, fut_list):
-        MacaStats.__init__(self, hist_list, fut_list)
+        MacaStats.__init__(self, hist_list, fut_list, fut_list_tmax, hist_list_tmax)
 
     def ens_diff_ann(self, save=False, dpath="./", stat='mean', ctype='absolute'):
         """
@@ -640,138 +795,11 @@ class MacaTemp(MacaStats):
     This class handles temperature statistics.
     """
 
-    def __init__(self, hist_list, fut_list, hist_list_tmax=None, fut_list_tmax=None):
-        MacaStats.__init__(self, hist_list, fut_list)
+    def __init__(self, hist_list, fut_list):
+        MacaStats.__init__(self, hist_list, fut_list, hist_list_tmax, fut_list_tmax)
         if hist_list_tmax:
             self.hist_list_tmax = hist_list_tmax
             self.fut_list_tmax = fut_list_tmax
-
-    def list_loop(self, stat='mean'):
-        """
-        Returns array of differences (future minus historical) from list of models
-        for the specified statistic.
-
-        hist_list (list) -- list of historical files (this variable becomes tmin if
-        tmax is specified (i.e. for GDD calculations).
-
-        fut_list (list) -- list of future files (this variable becomes tmin if tmax
-        is specified (i.e. for GDD calculations).
-
-        hist_list_tmax (list) -- list of historical tmax files
-
-        fut_list_tmax (list) -- list of future tmax files
-
-        stat (str) -- 'mean', 'std', 'gdd', 'ffd', 'tmax90F'
-        """
-
-        mod_dim = len(self.hist_list)
-        lat, lon = self.get_latlon()
-        lat_dim = lat.shape[0]
-        lon_dim = lon.shape[0]
-        netname = 'air_temperature'
-
-        diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
-        counter = 0
-        for fut_file in self.fut_list:
-            # Get name of the model
-            mod_name = fut_file.split("_")[5]
-
-            # Find historic file that matches future file
-            hist_file = [s for s in self.hist_list if mod_name in s][0]
-
-            # If temperature, find annual average
-            if stat == 'mean':
-                fut_data = Dataset(fut_file)
-                fut_var = fut_data.variables[netname][:]
-                hist_data = Dataset(hist_file)
-                hist_var = hist_data.variables[netname][:]
-                fut_data.close()
-                hist_data.close()
-                fut_stat = fut_var.mean(axis=0)
-                hist_stat = hist_var.mean(axis=0)
-            elif stat == 'std':
-                fut_data = Dataset(fut_file)
-                fut_var = fut_data.variables[netname][:]
-                hist_data = Dataset(hist_file)
-                hist_var = hist_data.variables[netname][:]
-                fut_data.close()
-                hist_data.close()
-                fut_stat = fut_var.std(axis=0)
-                hist_stat = hist_var.std(axis=0)
-            elif stat == 'gdd':
-                fut_tmin_data = Dataset(fut_file)
-                fut_tmin_var = fut_tmin_data.variables[netname][:]
-                fut_tmin_data.close()
-                fut_tmax_file = [s for s in self.fut_list_tmax if mod_name in s][0]
-                fut_tmax_data = Dataset(fut_tmax_file)
-                fut_tmax_var = fut_tmax_data.variables[netname][:]
-                fut_tmax_data.close()
-                fut_gdd = gdd(fut_tmin_var, fut_tmax_var)
-                del fut_tmin_var  # Delete to save memory
-                del fut_tmax_var  # Delete to save memory
-                hist_tmin_data = Dataset(hist_file)
-                hist_tmin_var = hist_tmin_data.variables[netname][:]
-                hist_tmin_data.close()
-                hist_tmax_file = [s for s in self.hist_list_tmax if mod_name in s][0]
-                hist_tmax_data = Dataset(hist_tmax_file)
-                hist_tmax_var = hist_tmax_data.variables[netname][:]
-                hist_tmax_data.close()
-                hist_gdd = gdd(hist_tmin_var, hist_tmax_var)
-                del hist_tmin_var  # Delete to save memory
-                del hist_tmax_var  # Delete to save memory
-                hist_stat = self.agg_time(hist_gdd, freq='annual',
-                                          historical=True,
-                                          stat='sum').mean(axis=0)
-                fut_stat = self.agg_time(fut_gdd, freq='annual',
-                                         historical=False,
-                                         stat='sum').mean(axis=0)
-            elif stat == 'ffd':
-                fut_data = Dataset(fut_file)
-                fut_var = fut_data.variables[netname][:]
-                fut_data.close()
-                hist_data = Dataset(hist_file)
-                hist_var = hist_data.variables[netname][:]
-                hist_data.close()
-                fut_ffd = ffd(fut_var)
-                hist_ffd = ffd(hist_var)
-                del fut_var
-                del hist_var
-                fut_stat = self.agg_time(fut_ffd, freq='annual',
-                                         historical=False,
-                                         stat='sum').mean(axis=0)
-                hist_stat = self.agg_time(hist_ffd, freq='annual',
-                                          historical=True,
-                                          stat='sum').mean(axis=0)
-            elif stat == 'tmax90F':
-                fut_data = Dataset(fut_file)
-                fut_var = fut_data.variables[netname][:]
-                fut_data.close()
-                hist_data = Dataset(hist_file)
-                hist_var = hist_data.variables[netname][:]
-                hist_data.close()
-                fut_t90 = tmax90F(fut_var)
-                hist_t90 = tmax90F(hist_var)
-                del fut_var
-                del hist_var
-                fut_stat = self.agg_time(fut_t90, freq='annual',
-                                         historical=False,
-                                         stat='sum').mean(axis=0)
-                hist_stat = self.agg_time(hist_t90, freq='annual',
-                                          historical=True,
-                                          stat='sum').mean(axis=0)
-
-            diff = fut_stat - hist_stat
-            del fut_stat
-            del hist_stat
-
-            # Add diff to numpy array
-            diff_arr[counter, :, :] = diff
-
-            # Complete loop
-            counter += 1
-            print("Done processing " + mod_name)
-
-        return diff_arr
 
     def ens_diff_ann(self, save=False, dpath="./", stat='mean'):
         """

@@ -19,8 +19,8 @@ hist_tmin = mp.select_mod(hist_rcp, var='tasmin', mod=mod_list)
 hist_tmax = mp.select_mod(hist_rcp, var='tasmax', mod=mod_list)
 hist_pr = mp.select_mod(hist_rcp, var='pr', mod=mod_list)
 
-# rcp = rcp_scen[1]
-# tr = time_range[1]
+rcp = rcp_scen[1]
+tr = time_range[1]
 for rcp in rcp_scen:
     for tr in time_range:
 
@@ -52,5 +52,8 @@ for rcp in rcp_scen:
         # t90_arr = aggstats.ens_diff_ann(save=True, dpath=save_path, stat='tmax90F')
 
         ############# Monthly Precip Percentage ############
-        aggstats = ms.MacaPrecip(hist_pr, fut_pr)
-        pr_perc_arr = aggstats.ens_diff_mon(save=True, dpath=save_path, ctype='percent')
+        # aggstats = ms.MacaPrecip(hist_pr, fut_pr)
+        # pr_perc_arr = aggstats.ens_diff_mon(save=True, dpath=save_path, ctype='percent')
+
+        ############ Annual Consecutive Dry Days ############
+
