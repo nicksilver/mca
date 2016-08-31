@@ -14,6 +14,7 @@ import json
 import pandas as pd
 import collections
 import xarray as xr
+import itertools
 
 
 def invert_dict(dic):
@@ -280,21 +281,32 @@ def tmax90F(tmax):
     return (tmax > 305.372)
 
 
-def consecDD(pr):
+def runsof(boo):
     """
-    Returns number of consecutive dry days (pr < 0.01" or 0.254 mm).
-    """
-    cdd_count = 0
-    max_count = 0
+    Returns a list of number of consecutive Trues (or ones) in a boolean array.
 
-    for value in pr:
-        if value < 0.254:
-            cdd_count = cdd_count + 1
-            if cdd_count > max_count:
-                max_count = cdd_count
-        else:
-            cdd_count = 0
-    return max_count
+    boo (array) - boolean array
+    """
+
+    return [sum(g) for b, g in itertools.groupby(boo) if b]
+
+
+# def consecDD(data):
+#     """
+#     Returns number of consecutive dry days (data < 0.01" or 0.254 mm).
+#     """
+#     yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
+#     shp = data.shape
+#     pr_boo = data < 0.254
+#     pr_flat = pr_boo.reshape(shp[0], shp[1]*shp[2])
+#     res = []
+#     for yr in:
+#     for i in range(pr_boo.shape[1]):
+#         mx = max(runsof(pr_flat[:, i]))
+#         res.append(mx)
+#
+#     res_arr = res.reshape(shp[1], shp[2])
+#     return res_arr
 
 
 def beetle_thresh(data):
