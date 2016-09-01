@@ -310,18 +310,34 @@ def rle(inarray):
 
 def consecDD(data):
     """
-    Returns number of consecutive dry days (data < 0.01" or 0.254 mm).
+    Returns max number of consecutive dry days (data < 0.01" or 0.254 mm) and the
+    day of year for the start of that sequence. Input data should be an xarray of
+    precipitation.
     """
     yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
 
-    for yr in yrs:
+    mx_arr = np.zeros((len(yrs), data.shape[1], data.shape[2]))
+    smx_arr = np.zeros((len(yrs), data.shape[1], data.shape[2]))
+    for j, yr in enumerate(yrs):
         pr_yr = data[data['time.year'] == yr]
         pr_shp = pr_yr.shape
-        pr_boo = pr_yr < 0.254
+        pr_boo = np.array(pr_yr < 0.254)
         pr_flat = pr_boo.reshape(pr_shp[0], pr_shp[1] * pr_shp[2])
+        mx = np.zeros((pr_shp[1] * pr_shp[2]))
+        smx = np.zeros((pr_shp[1] * pr_shp[2]))
+        print yr
         for i in range(pr_flat.shape[1]):
             rl, starts, vals = rle(pr_flat[:, i])
-    pass
+            mx[i] = rl[vals].max()  # find max of the Trues
+            imx = rl[vals].argmax()  # find index of max
+            smx[i] = starts[vals][imx]  # find start of the max True
+            print i
+        mx = mx.reshape(pr_shp[1], pr_shp[2])
+        smx = smx.reshape(pr_shp[1], pr_shp[2])
+        mx_arr[j, :, :] = mx
+        smx_arr[j, :, :] = smx
+        print j
+    return mx_arr, smx_arr
 
 
 def beetle_thresh(data):
