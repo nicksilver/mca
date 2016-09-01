@@ -281,32 +281,47 @@ def tmax90F(tmax):
     return (tmax > 305.372)
 
 
-def runsof(boo):
+def rle(inarray):
     """
-    Returns a list of number of consecutive Trues (or ones) in a boolean array.
+    Run length encoding. Partial credit to R rle function. Returns
+    information on consecutive values. Used in consecDD() and consecWD().
 
-    boo (array) - boolean array
+    Returns: tuple (runlengths, startpositions, values)
     """
 
-    return [sum(g) for b, g in itertools.groupby(boo) if b]
+    # force numpy
+    ia = np.array(inarray)
+    n = len(ia)
+
+    # pairwise unequal (string safe)
+    y = np.array(ia[1:] != ia[:-1])
+
+    # must include last element
+    i = np.append(np.where(y), n - 1)
+
+    # run lengths
+    z = np.diff(np.append(-1, i))
+
+    # positions
+    p = np.cumsum(np.append(0, z))[:-1]
+
+    return (z, p, ia[i])
 
 
-# def consecDD(data):
-#     """
-#     Returns number of consecutive dry days (data < 0.01" or 0.254 mm).
-#     """
-#     yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
-#     shp = data.shape
-#     pr_boo = data < 0.254
-#     pr_flat = pr_boo.reshape(shp[0], shp[1]*shp[2])
-#     res = []
-#     for yr in:
-#     for i in range(pr_boo.shape[1]):
-#         mx = max(runsof(pr_flat[:, i]))
-#         res.append(mx)
-#
-#     res_arr = res.reshape(shp[1], shp[2])
-#     return res_arr
+def consecDD(data):
+    """
+    Returns number of consecutive dry days (data < 0.01" or 0.254 mm).
+    """
+    yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
+
+    for yr in yrs:
+        pr_yr = data[data['time.year'] == yr]
+        pr_shp = pr_yr.shape
+        pr_boo = pr_yr < 0.254
+        pr_flat = pr_boo.reshape(pr_shp[0], pr_shp[1] * pr_shp[2])
+        for i in range(pr_flat.shape[1]):
+            rl, starts, vals = rle(pr_flat[:, i])
+    pass
 
 
 def beetle_thresh(data):

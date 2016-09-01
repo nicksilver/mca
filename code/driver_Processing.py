@@ -1,11 +1,11 @@
 import macaproc as mp
 import macastats as ms
 
-data_path = "/data/maca_mt/"
+# data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-gis_path = "/home/nick/workspace/shapefiles/"
+data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+# gis_path = "/home/nick/workspace/shapefiles/"
 # save_path = "/home/nick/workspace/data/monthly/"
 save_path = "./"
 
