@@ -14,7 +14,6 @@ import json
 import pandas as pd
 import collections
 import xarray as xr
-import itertools
 
 
 def invert_dict(dic):
@@ -310,34 +309,56 @@ def rle(inarray):
 
 def consecDD(data):
     """
-    Returns max number of consecutive dry days (data < 0.01" or 0.254 mm) and the
-    day of year for the start of that sequence. Input data should be an xarray of
-    precipitation.
+    Returns max number of consecutive dry days (data < 0.01" or 0.254 mm).
+    Input data should be an xarray of precipitation.
     """
     yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
 
     mx_arr = np.zeros((len(yrs), data.shape[1], data.shape[2]))
-    smx_arr = np.zeros((len(yrs), data.shape[1], data.shape[2]))
     for j, yr in enumerate(yrs):
+        print "Processing year " + str(yr)
         pr_yr = data[data['time.year'] == yr]
         pr_shp = pr_yr.shape
         pr_boo = np.array(pr_yr < 0.254)
         pr_flat = pr_boo.reshape(pr_shp[0], pr_shp[1] * pr_shp[2])
         mx = np.zeros((pr_shp[1] * pr_shp[2]))
-        smx = np.zeros((pr_shp[1] * pr_shp[2]))
-        print yr
         for i in range(pr_flat.shape[1]):
             rl, starts, vals = rle(pr_flat[:, i])
-            mx[i] = rl[vals].max()  # find max of the Trues
-            imx = rl[vals].argmax()  # find index of max
-            smx[i] = starts[vals][imx]  # find start of the max True
-            print i
+            if len(rl) == 1:
+                mx[i] = np.nan
+            else:
+                mx[i] = rl[vals].max()  # find max of the Trues
         mx = mx.reshape(pr_shp[1], pr_shp[2])
-        smx = smx.reshape(pr_shp[1], pr_shp[2])
         mx_arr[j, :, :] = mx
+    return mx_arr
+
+
+def cdd_startday(data):
+    """
+    Returns the start day for the max number of consecutive dry days
+    (data < 0.01" or 0.254 mm). Input data should be an xarray of
+    precipitation.
+    """
+    yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
+
+    smx_arr = np.zeros((len(yrs), data.shape[1], data.shape[2]))
+    for j, yr in enumerate(yrs):
+        print("Processing year " + yr)
+        pr_yr = data[data['time.year'] == yr]
+        pr_shp = pr_yr.shape
+        pr_boo = np.array(pr_yr < 0.254)
+        pr_flat = pr_boo.reshape(pr_shp[0], pr_shp[1] * pr_shp[2])
+        smx = np.zeros((pr_shp[1] * pr_shp[2]))
+        for i in range(pr_flat.shape[1]):
+            rl, starts, vals = rle(pr_flat[:, i])
+            if len(rl) == 1:
+                smx[i] = np.nan
+            else:
+                imx = rl[vals].argmax()  # find index of max
+                smx[i] = starts[vals][imx]  # find start of the max True
+        smx = smx.reshape(pr_shp[1], pr_shp[2])
         smx_arr[j, :, :] = smx
-        print j
-    return mx_arr, smx_arr
+    return smx_arr
 
 
 def beetle_thresh(data):
@@ -544,20 +565,24 @@ class MacaStats(object):
         x = pd.to_datetime(t + days_offset, unit='D')
         return x
 
-    def list_loop(self, stat='mean'):
+    def list_loop(self, stat='mean', ctype='absolute'):
         """
         Returns array of differences (future minus historical) from list of models
         for the specified statistic.
 
         stat (str) -- 'mean', 'std', 'gdd', 'ffd', 'tmax90F', 'consecDD'
+        ctype (str) -- 'absolute' or 'percent'
         """
 
         mod_dim = len(self.hist_list)
         lat, lon = self.get_latlon()
         lat_dim = lat.shape[0]
         lon_dim = lon.shape[0]
-        netname = 'air_temperature'
-        # TODO need to change netname
+        vname = self.hist_list[0].split("_")[4]
+        if vname == 'pr':
+            netname = 'precipitation'
+        else:
+            netname = 'air_temperature'
 
         diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
         counter = 0
@@ -568,7 +593,7 @@ class MacaStats(object):
             # Find historic file that matches future file
             hist_file = [s for s in self.hist_list if mod_name in s][0]
 
-            # If temperature, find annual average
+            # Calculate statistic
             if stat == 'mean':
                 fut_data = Dataset(fut_file)
                 fut_var = fut_data.variables[netname][:]
@@ -648,25 +673,24 @@ class MacaStats(object):
                 hist_stat = self.agg_time(hist_t90, freq='annual',
                                           historical=True,
                                           stat='sum').mean(axis=0)
-            # elif stat == 'consecDD':
-            #     fut_data = Dataset(fut_file)
-            #     fut_var = fut_data.variables[netname][:]
-            #     fut_data.close()
-            #     hist_data = Dataset(hist_file)
-            #     hist_var = hist_data.variables[netname][:]
-            #     hist_data.close()
-            #     fut_cdd = consecDD(fut_var)
-            #     hist_cdd = consecDD(hist_var)
-            #     del fut_var
-            #     del hist_var
-            #     fut_stat = self.agg_time(fut_cdd, freq='annual',
-            #                              historical=False,
-            #                              stat='sum').mean(axis=0)
-            #     hist_stat = self.agg_time(hist_cdd, freq='annual',
-            #                               historical=True,
-            #                               stat='sum').mean(axis=0)
+            elif stat == 'consecDD':
+                fut_data = xr.open_dataset(fut_file)  # use xarray
+                fut_var = fut_data[netname]
+                hist_data = xr.open_dataset(hist_file)
+                hist_var = hist_data[netname]
+                fut_cdd = consecDD(fut_var)
+                hist_cdd = consecDD(hist_var)
+                del fut_var
+                del hist_var
+                fut_stat = fut_cdd.mean(axis=0)
+                hist_stat = hist_cdd.mean(axis=0)
+                hist_data.close()
+                fut_data.close()
 
-            diff = fut_stat - hist_stat
+            if ctype == 'absolute':
+                diff = fut_stat - hist_stat
+            elif ctype == 'percent':
+                diff = (fut_stat - hist_stat)/hist_stat
             del fut_stat
             del hist_stat
 
@@ -685,7 +709,7 @@ class MacaPrecip(MacaStats):
     This class handles precipitation statistics.
     """
 
-    def __init__(self, hist_list, fut_list):
+    def __init__(self, hist_list, fut_list, fut_list_tmax=None, hist_list_tmax=None):
         MacaStats.__init__(self, hist_list, fut_list, fut_list_tmax, hist_list_tmax)
 
     def ens_diff_ann(self, save=False, dpath="./", stat='mean', ctype='absolute'):
@@ -695,67 +719,24 @@ class MacaPrecip(MacaStats):
 
         save (bool) -- do you want to save numpy array?
         dpath (str) -- destination directory for saving file
-        stat (str) -- statistic across the time domain (i.e. mean or std)
-        ctype (str) -- absolute or percent change
+        stat (str) -- statistic across the time domain (see list_loop() for options)
+        ctype (str) -- 'absolute' or 'percent' change
         """
 
         # Set dimensions of output
         mod_dim = len(self.hist_list)
-        lat, lon = self.get_latlon()
-        lat_dim = lat.shape[0]
-        lon_dim = lon.shape[0]
         print("Hold on a few minutes while I process " + str(mod_dim) + " models...")
 
         # Set names for variable
-        netname = "precipitation"
+        vname = self.hist_list[0].split("_")[4]
 
         # Find end year and scenario
         end_yr = self.fut_list[0].split("_")[9]
         rcp = self.fut_list[0].split("_")[6]
 
         # For each model in the list find the projected change
-        diff_arr = np.zeros((mod_dim, lat_dim, lon_dim))
-        counter = 0
-        for fut_file in self.fut_list:
-            # Get name of the model
-            mod_name = fut_file.split("_")[5]
-
-            # Find historic file that matches future file
-            hist_file = [s for s in self.hist_list if mod_name in s][0]
-
-            # Open datasets
-            fut_data = Dataset(fut_file)
-            fut_var = fut_data.variables[netname][:]
-            hist_data = Dataset(hist_file)
-            hist_var = hist_data.variables[netname][:]
-
-            fut = self.agg_time(fut_var, freq='annual',
-                                historical=False, stat='sum')
-            hist = self.agg_time(hist_var, freq='annual',
-                                 historical=True, stat='sum')
-            if stat == 'mean':
-                hist_stat = hist.mean(axis=0)  # average over all years
-                fut_stat = fut.mean(axis=0)  # average over all years
-                name = dpath + "model_diffs_pr_" + rcp + "_" + end_yr
-            elif stat == 'std':
-                hist_stat = hist.std(axis=0)  # std over all years
-                fut_stat = fut.std(axis=0)  # std over all years
-                name = dpath + "model_vars_pr_" + rcp + "_" + end_yr
-
-            if ctype == 'absolute':
-                diff = fut_stat - hist_stat
-            elif ctype == 'percent' and netname == 'precipitation':
-                diff = (fut_stat - hist_stat)/hist_stat
-                name = dpath + "model_vars_perc_pr_" + rcp + "_" + end_yr
-
-            # Add diff to numpy array
-            diff_arr[counter, :, :] = diff
-
-            # Complete loop
-            counter += 1
-            fut_data.close()
-            hist_data.close()
-            print("Done processing " + mod_name)
+        diff_arr = self.list_loop(stat=stat, ctype=ctype)
+        name = dpath + "model_diffs_" + stat + "_" + vname + "_" + rcp + "_" + end_yr
 
         if save:
             print("Saving file...")

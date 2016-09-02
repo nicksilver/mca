@@ -56,4 +56,6 @@ for rcp in rcp_scen:
         # pr_perc_arr = aggstats.ens_diff_mon(save=True, dpath=save_path, ctype='percent')
 
         ############ Annual Consecutive Dry Days ############
+        aggstats = ms.MacaPrecip(hist_pr, fut_pr)
+        pr_cdd = aggstats.ens_diff_ann(save=False, stat='consecDD', ctype='absolute')
 
