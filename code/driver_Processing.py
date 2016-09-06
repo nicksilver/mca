@@ -1,13 +1,13 @@
 import macaproc as mp
 import macastats as ms
 
-# data_path = "/data/maca_mt/"
+data_path = "/data/maca_mt/"
 # data_path = "/home/nick/workspace/data/"
-data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
-gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
-# gis_path = "/home/nick/workspace/shapefiles/"
-# save_path = "/home/nick/workspace/data/monthly/"
-save_path = "./"
+# data_path = '/media/nick/Seagate Backup Plus Drive/data/MCA_data/'
+# gis_path = "/home/nick/MEGA/workspace/mca/data/shapefiles/"
+gis_path = "/home/nick/workspace/shapefiles/"
+save_path = "/home/nick/workspace/data/annually/"
+# save_path = "./"
 
 mod_list = None  # ['IPSL-CM5B-LR', 'MIROC-ESM-CHEM']
 rcp_scen = ["rcp45", "rcp85"]
@@ -19,8 +19,8 @@ hist_tmin = mp.select_mod(hist_rcp, var='tasmin', mod=mod_list)
 hist_tmax = mp.select_mod(hist_rcp, var='tasmax', mod=mod_list)
 hist_pr = mp.select_mod(hist_rcp, var='pr', mod=mod_list)
 
-rcp = rcp_scen[1]
-tr = time_range[1]
+# rcp = rcp_scen[1]
+# tr = time_range[1]
 for rcp in rcp_scen:
     for tr in time_range:
 
@@ -57,5 +57,7 @@ for rcp in rcp_scen:
 
         ############ Annual Consecutive Dry Days ############
         aggstats = ms.MacaPrecip(hist_pr, fut_pr)
-        pr_cdd = aggstats.ens_diff_ann(save=False, stat='consecDD', ctype='absolute')
+        pr_cdd = aggstats.ens_diff_ann(save=True, stat='consecWD', ctype='absolute',
+                                       dpath=save_path)
+
 

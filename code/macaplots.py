@@ -361,7 +361,7 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
     colors = [col_samp[val] for val in int_vals]
     months = [mth_samp[mth-1] for mth in stats_df['month']]
     climdivs = [cd_dict[str(cd)] for cd in stats_df['climdiv']]
-    
+
     output_file(save_path, title=webtitle)
 
     source = ColumnDataSource(data=dict(
@@ -394,7 +394,6 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
 
     if r_data is None:
         p.select_one(HoverTool).tooltips = [
-            ('Month', '@month'),
             ('Climate Division', '@climdiv'),
             ('Ensemble Mean', '@value')
         ]
@@ -412,5 +411,3 @@ def clim_div_grid(stats_df, stat='median', title='', r_data=None, browser=True,
         show(gridplot(p, legend, ncols=2))
     else:
         save(gridplot(p, legend, ncols=2))
-
-

@@ -333,6 +333,32 @@ def consecDD(data):
     return mx_arr
 
 
+def consecWD(data):
+    """
+    Returns max number of consecutive wet days (data >= 0.01" or 0.254 mm).
+    Input data should be an xarray of precipitation.
+    """
+    yrs = range(data['time.year'][0], data['time.year'][-1] + 1)
+
+    mx_arr = np.zeros((len(yrs), data.shape[1], data.shape[2]))
+    for j, yr in enumerate(yrs):
+        print "Processing year " + str(yr)
+        pr_yr = data[data['time.year'] == yr]
+        pr_shp = pr_yr.shape
+        pr_boo = np.array(pr_yr >= 0.254)
+        pr_flat = pr_boo.reshape(pr_shp[0], pr_shp[1] * pr_shp[2])
+        mx = np.zeros((pr_shp[1] * pr_shp[2]))
+        for i in range(pr_flat.shape[1]):
+            rl, starts, vals = rle(pr_flat[:, i])
+            if len(rl) == 1:
+                mx[i] = np.nan
+            else:
+                mx[i] = rl[vals].max()  # find max of the Trues
+        mx = mx.reshape(pr_shp[1], pr_shp[2])
+        mx_arr[j, :, :] = mx
+    return mx_arr
+
+
 def cdd_startday(data):
     """
     Returns the start day for the max number of consecutive dry days
@@ -521,7 +547,7 @@ class MacaStats(object):
         historical (bool) -- is the data historical or future?
         stat (str) -- do you want to find the sum or the mean
         """
-        #TODO Might be faster to utilize xarray instead of for loop.
+        # TODO Might be faster to utilize xarray instead of for loop.
 
         ts = self.timestamp(historical=historical)
         yrs_uni = np.unique(ts.year)
@@ -570,7 +596,7 @@ class MacaStats(object):
         Returns array of differences (future minus historical) from list of models
         for the specified statistic.
 
-        stat (str) -- 'mean', 'std', 'gdd', 'ffd', 'tmax90F', 'consecDD'
+        stat (str) -- 'mean', 'std', 'gdd', 'ffd', 'tmax90F', 'consecDD', 'consecWD'
         ctype (str) -- 'absolute' or 'percent'
         """
 
@@ -686,6 +712,19 @@ class MacaStats(object):
                 hist_stat = hist_cdd.mean(axis=0)
                 hist_data.close()
                 fut_data.close()
+            elif stat == 'consecWD':
+                fut_data = xr.open_dataset(fut_file)  # use xarray
+                fut_var = fut_data[netname]
+                hist_data = xr.open_dataset(hist_file)
+                hist_var = hist_data[netname]
+                fut_cdd = consecWD(fut_var)
+                hist_cdd = consecWD(hist_var)
+                del fut_var
+                del hist_var
+                fut_stat = fut_cdd.mean(axis=0)
+                hist_stat = hist_cdd.mean(axis=0)
+                hist_data.close()
+                fut_data.close()
 
             if ctype == 'absolute':
                 diff = fut_stat - hist_stat
@@ -753,6 +792,7 @@ class MacaPrecip(MacaStats):
         dpath (str) -- destination directory for saving file
         ctype (str) -- absolute or percent change
         """
+        # TODO use list_loop() function
 
         # Set dimensions of output
         mod_dim = len(self.hist_list)
